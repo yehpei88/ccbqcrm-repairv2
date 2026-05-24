@@ -73,7 +73,9 @@ export default function StaffMap() {
     
     // 使用民宿資料中的坐標直接縮放地圖
     if (mapRef.current) {
-      mapRef.current.setView([minsu.latitude, minsu.longitude], 16);
+      // 添加偏移量，確保 PIN 點在畫面內
+      const offsetLat = 0.01;
+      mapRef.current.setView([minsu.latitude + offsetLat, minsu.longitude], 16);
       // 開啟 popup
       const marker = markersRef.current.get(minsu.id);
       if (marker && 'openPopup' in marker) {
