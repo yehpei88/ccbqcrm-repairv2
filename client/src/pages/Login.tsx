@@ -33,7 +33,7 @@ export default function Login() {
         toast.error('老闆帳號或密碼錯誤');
       }
     } else {
-      // 工讀生登入驗證
+      // 顧客開發人員登入驗證
       const staff = STAFF_LOGIN_CREDENTIALS.find(
         s => s.username === username && s.password === password
       );
@@ -46,7 +46,7 @@ export default function Login() {
         localStorage.setItem('assignedAreas', JSON.stringify(staff.assignedAreas));
         setLocation('/staff/map');
       } else {
-        toast.error('工讀生帳號或密碼錯誤');
+        toast.error('顧客開發人員帳號或密碼錯誤');
       }
     }
   };
@@ -194,7 +194,7 @@ export default function Login() {
                 setLocation('/staff/map');
               }}
             >
-              工讀生 - 地圖（小陳）
+              顧客開發人員 - 地圖（小陳）
             </button>
             <button
               className="text-xs px-3 py-1.5 rounded-full border transition-colors"
@@ -207,7 +207,7 @@ export default function Login() {
                 setLocation('/staff/map');
               }}
             >
-              工讀生 - 地圖（小林）
+              顧客開發人員 - 地圖（小林）
             </button>
           </div>
         </div>

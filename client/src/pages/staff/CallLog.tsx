@@ -75,7 +75,7 @@ export default function CallLog() {
   const [callHistory, setCallHistory] = useState<Record<string, { result: CallResult; note: string; time: string }>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // 從 localStorage 獲取登入的工讀生信息
+  // 從 localStorage 獲取登入的顧客開發人員信息
   const staffId = localStorage.getItem('staffId');
   const staffName = localStorage.getItem('staffName');
   const assignedAreasStr = localStorage.getItem('assignedAreas');

@@ -35,7 +35,7 @@ export function exportPerformanceReport(
   // 準備日報資料
   const dailySheetData = [
     ['日報統計', '', '', '', ''],
-    ['日期', '顧客開發人員', '撥打通數', '成功加賴', '轉換率', '平均通話時長'],
+    ['日期', '顧客開發人員', '撥打通數', '成功加賴', '顧客答應率', '平均通話時長'],
     ...dailyData.map(d => [
       d.date || '',
       d.staffName,
@@ -49,7 +49,7 @@ export function exportPerformanceReport(
   // 準備周報資料
   const weeklySheetData = [
     ['周報統計', '', '', '', '', '', ''],
-    ['周期', '顧客開發人員', '撥打通數', '成功加賴', '轉換率', '平均每日', '最佳日期'],
+    ['周期', '顧客開發人員', '撥打通數', '成功加賴', '顧客答應率', '平均每日', '最佳日期'],
     ...weeklyData.map(d => [
       d.weekStart && d.weekEnd ? `${d.weekStart} ~ ${d.weekEnd}` : '',
       d.staffName,
@@ -124,7 +124,7 @@ export function exportStaffWorkRecord(
   // 準備人員統計資料
   const staffSheetData = [
     ['銷售人員統計', '', '', '', ''],
-    ['顧客開發人員', '總撥打通數', '成功加賴', '轉換率', '今日撥打'],
+    ['顧客開發人員', '總撥打通數', '成功加賴', '顧客答應率', '今日撥打'],
     ...staffRecords.map(s => [
       s.staffName,
       s.totalCalls,

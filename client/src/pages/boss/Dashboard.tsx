@@ -1,5 +1,5 @@
 // CC 代客烤肉 CRM 系統 — 老闆營運儀表板
-// 設計：關鍵統計卡片、Pin 狀態分佈、客戶類型分佈、AI 轉換率對比、接受率與成交率成長
+// 設計：關鍵統計卡片、Pin 狀態分佈、客戶類型分佈、AI 顧客答應率對比、接受率與成交率成長
 
 import Layout, { PageHeader } from '@/components/Layout';
 import {
@@ -158,16 +158,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* AI 轉換率對比 */}
+        {/* AI 顧客答應率對比 */}
         <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <h3 className="font-semibold text-foreground mb-1">AI 導入效益對比</h3>
-          <p className="text-xs text-muted-foreground mb-4">電話開發轉換率（加 LINE 成功率）</p>
+          <p className="text-xs text-muted-foreground mb-4">電話開發顧客答應率（加 LINE 成功率）</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={CONVERSION_COMPARE} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 13, fontWeight: 600 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={v => [`${v}%`, '轉換率']} />
+              <Tooltip formatter={v => [`${v}%`, '顧客答應率']} />
               <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
                 {CONVERSION_COMPARE.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
@@ -176,7 +176,7 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-100 text-xs text-orange-700">
-            <span className="font-semibold">AI 系統導入後</span>，轉換率從 12% 提升至 31%，提升幅度達 <span className="font-bold">+158%</span>
+            <span className="font-semibold">AI 系統導入後</span>，顧客答應率從 12% 提升至 31%，提升幅度達 <span className="font-bold">+158%</span>
           </div>
         </div>
 

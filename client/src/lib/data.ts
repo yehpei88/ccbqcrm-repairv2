@@ -5,7 +5,7 @@ export type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
 export type CallResult = 'agreed' | 'hesitating' | 'rejected' | 'invalid' | 'closed';
 export type IntentLabel = 'hot' | 'inquiring' | 'rejected' | 'seen';
 
-// 工讀生介面
+// 顧客開發人員介面
 export interface Staff {
   id: string;
   name: string;
@@ -168,7 +168,7 @@ export const MOCK_ALERTS: Alert[] = [
   { id: 'a1', minsuName: '礁溪山景民宿', type: 'hot', message: '客戶詢問 6/20 檔期，並詢問訂金方式，意向強烈', time: '10 分鐘前', read: false },
   { id: 'a2', minsuName: '員山竹林小屋', type: 'hot', message: '明確表達預約意願，詢問最早可服務日期', time: '35 分鐘前', read: false },
   { id: 'a3', minsuName: '冬山河畔民宿', type: 'seen', message: '已讀超過 3 天未回應，建議補發優惠訊息', time: '2 小時前', read: true },
-  { id: 'a4', minsuName: '三星蔥田農莊', type: 'seen', message: '已讀超過 7 天未回應，建議工讀生回訪', time: '1 天前', read: true },
+  { id: 'a4', minsuName: '三星蔥田農莊', type: 'seen', message: '已讀超過 7 天未回應，建議顧客開發人員回訪', time: '1 天前', read: true },
 ];
 
 // 模擬定價建議
@@ -222,7 +222,7 @@ export const CONVERSION_RATE_DATA = [
 ];
 
 
-// 工讀生作業紀錄型別
+// 顧客開發人員作業紀錄型別
 export interface StaffRecord {
   id: string;
   staffName: string;
@@ -243,7 +243,7 @@ export interface CallLog {
   note: string;
 }
 
-// 工讀生作業紀錄模擬資料
+// 顧客開發人員作業紀錄模擬資料
 export const STAFF_RECORDS: StaffRecord[] = [
   { id: '1', staffName: '小陳', staffStatus: 'on-duty', totalCalls: 23, successfulAdds: 15, conversionRate: 65, todayCallCount: 8 },
   { id: '2', staffName: '小林', staffStatus: 'on-duty', totalCalls: 18, successfulAdds: 11, conversionRate: 61, todayCallCount: 6 },
@@ -312,7 +312,7 @@ export const WEEKLY_PERFORMANCE: WeeklyPerformance[] = [
   { weekStart: '2026-05-05', weekEnd: '2026-05-11', staffName: '小王', totalCalls: 35, successfulAdds: 18, conversionRate: 51, avgCallsPerDay: 5, topDay: '2026-05-07', topDayCount: 7 },
 ];
 
-// 工讀生模擬資料
+// 顧客開發人員模擬資料
 export const MOCK_STAFF: Staff[] = [
   { id: 'staff-1', name: '小陳', assignedAreas: ['礁溪鄉', '員山鄉', '壯圍鄉'], createdAt: '2026-01-15' },
   { id: 'staff-2', name: '小林', assignedAreas: ['冬山鄉', '羅東鎮', '三星鄉'], createdAt: '2026-02-20' },
@@ -356,7 +356,7 @@ export const MONTHLY_PERFORMANCE: MonthlyPerformance[] = [
   { month: '2026-05', monthDisplay: '5月', staffName: '小王', totalCalls: 105, successfulAdds: 54, conversionRate: 51, contractCount: 8, avgContractValue: 3000, totalRevenue: 24000, topDay: '2026-05-07', topDayCount: 7 },
 ];
 
-// 工讀生登入認證數據
+// 顧客開發人員登入認證數據
 export interface StaffLogin {
   staffId: string;
   staffName: string;

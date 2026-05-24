@@ -77,14 +77,14 @@ export default function PerformanceReport() {
     name: d.staffName,
     撥打通數: d.totalCalls,
     成功加賴: d.successfulAdds,
-    轉換率: d.conversionRate,
+    顧客答應率: d.conversionRate,
   }));
 
   const weeklyChartData = filteredWeeklyData.map(d => ({
     name: d.staffName,
     撥打通數: d.totalCalls,
     成功加賴: d.successfulAdds,
-    轉換率: d.conversionRate,
+    顧客答應率: d.conversionRate,
   }));
 
   // 月報統計
@@ -170,7 +170,7 @@ export default function PerformanceReport() {
               />
               <StatCard 
                 icon={<TrendingUp size={20} className="text-white" />}
-                label="轉換率"
+                label="顧客答應率"
                 value={`${todayConversionRate}%`}
                 color="bg-orange-500"
               />
@@ -194,7 +194,7 @@ export default function PerformanceReport() {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-foreground">顧客開發人員</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">撥打通數</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">成功加賴</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">轉換率</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">顧客答應率</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">平均通話時長</th>
                     </tr>
                   </thead>
@@ -254,7 +254,7 @@ export default function PerformanceReport() {
               />
               <StatCard 
                 icon={<TrendingUp size={20} className="text-white" />}
-                label="轉換率"
+                label="顧客答應率"
                 value={`${weekConversionRate}%`}
                 color="bg-orange-500"
               />
@@ -278,7 +278,7 @@ export default function PerformanceReport() {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-foreground">顧客開發人員</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">撥打通數</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">成功加賴</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">轉換率</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">顧客答應率</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">平均每日</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">最佳日期</th>
                     </tr>
@@ -357,7 +357,7 @@ export default function PerformanceReport() {
               />
               <StatCard 
                 icon={<TrendingUp size={20} className="text-white" />}
-                label="轉換率"
+                label="顧客答應率"
                 value={`${monthConversionRate}%`}
                 color="bg-orange-500"
               />
@@ -382,7 +382,7 @@ export default function PerformanceReport() {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-foreground">顧客開發人員</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">撥打通數</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">成功加賴</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">轉換率</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">顧客答應率</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">簽約數</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">平均簽約金額</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">月度營收</th>

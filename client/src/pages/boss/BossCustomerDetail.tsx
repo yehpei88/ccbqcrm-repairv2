@@ -1,4 +1,4 @@
-// 設計：老闆客戶備註管理，全局視圖，支持工讀生分配和摘要審核
+// 設計：老闆客戶備註管理，全局視圖，支持顧客開發人員分配和摘要審核
 
 import { useState } from 'react';
 import Layout, { PageHeader } from '@/components/Layout';
@@ -24,7 +24,7 @@ const PIN_COLORS: Record<PinStatus, string> = {
   'gold': '#eab308',
 };
 
-// 模擬工讀生分配
+// 模擬顧客開發人員分配
 const STAFF_NAMES = ['小陳', '小林', '小王'];
 
 export default function BossCustomerDetail() {
@@ -131,7 +131,7 @@ export default function BossCustomerDetail() {
     <Layout role="boss">
       <PageHeader
         title="客戶備注管理"
-        subtitle="查看所有民宿詳細資訊、通話摘要和工讀生分配"
+        subtitle="查看所有民宿詳細資訊、通話摘要和顧客開發人員分配"
       />
 
       <div className="flex h-[calc(100vh-73px)]">
@@ -170,9 +170,9 @@ export default function BossCustomerDetail() {
               </div>
             </div>
 
-            {/* 工讀生篩選 */}
+            {/* 顧客開發人員篩選 */}
             <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">工讀生</label>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">顧客開發人員</label>
               <div className="flex gap-1 flex-wrap">
                 {['all', ...STAFF_NAMES].map(staff => (
                   <button

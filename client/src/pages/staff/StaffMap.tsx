@@ -39,7 +39,7 @@ export default function StaffMap() {
   const markersRef = useRef<Map<string, L.CircleMarker | L.Marker>>(new Map());
   const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
-  // 從 localStorage 獲取登入的工讀生信息
+  // 從 localStorage 獲取登入的顧客開發人員信息
   const staffId = localStorage.getItem('staffId');
   const staffName = localStorage.getItem('staffName');
   const assignedAreasStr = localStorage.getItem('assignedAreas');

@@ -74,12 +74,12 @@ export default function AreaAssignment() {
   return (
     <Layout role="boss">
       <PageHeader
-        title="工讀生區域分配"
-        subtitle="為工讀生指派特定區域，防止多人搶同一筆客戶資料"
+        title="顧客開發人員區域分配"
+        subtitle="為顧客開發人員指派特定區域，防止多人搶同一筆客戶資料"
       />
 
       <div className="p-6 space-y-6">
-        {/* 工讀生列表 */}
+        {/* 顧客開發人員列表 */}
         <div className="grid gap-4">
           {staffList.map(staff => {
             const assignment = assignments.find(a => a.staffId === staff.id);
@@ -155,7 +155,7 @@ export default function AreaAssignment() {
           <h3 className="font-semibold text-foreground mb-3">分配統計</h3>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">總工讀生數</p>
+              <p className="text-xs text-muted-foreground mb-1">總顧客開發人員數</p>
               <p className="text-2xl font-bold text-blue-600">{staffList.length}</p>
             </div>
             <div>
@@ -163,7 +163,7 @@ export default function AreaAssignment() {
               <p className="text-2xl font-bold text-green-600">{totalAssignedAreas}/{AVAILABLE_AREAS.length}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">未分配工讀生</p>
+              <p className="text-xs text-muted-foreground mb-1">未分配顧客開發人員</p>
               <p className="text-2xl font-bold text-orange-600">{unassignedStaff}</p>
             </div>
           </div>

@@ -116,7 +116,7 @@ export default function StaffWorkRecord() {
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-blue-600">{staff.conversionRate}%</div>
-                  <div className="text-xs text-muted-foreground">轉換率</div>
+                  <div className="text-xs text-muted-foreground">顧客答應率</div>
                 </div>
               </div>
 
@@ -228,7 +228,7 @@ export default function StaffWorkRecord() {
             />
             <StatCard
               icon={<TrendingUp size={18} className="text-purple-600" />}
-              label="平均轉換率"
+              label="平均顧客答應率"
               value={`${avgConversionRate}%`}
               sub="整體表現"
               color="bg-purple-50"
