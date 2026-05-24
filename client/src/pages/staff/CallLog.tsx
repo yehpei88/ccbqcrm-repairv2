@@ -134,6 +134,7 @@ export default function CallLog() {
     hesitating: Object.values(callHistory).filter(h => h.result === 'hesitating').length,
     rejected: Object.values(callHistory).filter(h => h.result === 'rejected').length,
     invalid: Object.values(callHistory).filter(h => h.result === 'invalid' || h.result === 'closed').length,
+    missed: Object.values(callHistory).filter(h => h.result === 'missed').length,
   };
 
   return (
@@ -152,13 +153,14 @@ export default function CallLog() {
 
       <div className="p-6 space-y-5">
         {/* 今日統計 */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-6 gap-3">
           {[
             { label: '已撥打', value: todayStats.total, color: 'bg-blue-50 text-blue-700 border-blue-100' },
             { label: '✅ 答應加賴', value: todayStats.agreed, color: 'bg-green-50 text-green-700 border-green-100' },
             { label: '⏳ 猶豫中', value: todayStats.hesitating, color: 'bg-yellow-50 text-yellow-700 border-yellow-100' },
             { label: '❌ 拒絕', value: todayStats.rejected, color: 'bg-red-50 text-red-700 border-red-100' },
             { label: '📵 空號/不營業', value: todayStats.invalid, color: 'bg-gray-50 text-gray-600 border-gray-100' },
+            { label: '📴 未接電話', value: todayStats.missed, color: 'bg-gray-50 text-gray-700 border-gray-100' },
           ].map(item => (
             <div key={item.label} className={cn('rounded-xl p-3 border text-center', item.color)}>
               <div className="text-xl font-black">{item.value}</div>
