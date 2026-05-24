@@ -67,11 +67,10 @@ export default function BossMap() {
   const handleSelectMinsu = (minsu: Minsu) => {
     setSelectedMinsu(minsu);
     
-    // 使用民宿資料中的坐標直接縮放地圖
+    // 使用民宿資料中的坐標直接縮放地圖，PIN 點居中
     if (mapRef.current) {
-      // 添加偏移量，確保 PIN 點在畫面內
-      const offsetLat = 0.01; // 添加南北偏移
-      mapRef.current.setView([minsu.latitude + offsetLat, minsu.longitude], 16);
+      // 直接設置為民宿坐標，讓 PIN 點完全居中在畫面中央
+      mapRef.current.setView([minsu.latitude, minsu.longitude], 16);
       // 開啟 popup
       const marker = markersRef.current.get(minsu.id);
       if (marker && 'openPopup' in marker) {
