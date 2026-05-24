@@ -44,14 +44,14 @@ L.Icon.Default.mergeOptions({
 });
 
 /**
- * PIN 狀態配置
+ * PIN 狀態配置 - 精緻設計
  */
-const PIN_STATUS_CONFIG: Record<string, { color: string; emoji: string; label: string }> = {
-  'red-star': { color: '#ef4444', emoji: '⭐', label: '紅星' },
-  'red': { color: '#f87171', emoji: '🔴', label: '紅標' },
-  'green': { color: '#22c55e', emoji: '🟢', label: '綠標' },
-  'purple': { color: '#a855f7', emoji: '🟣', label: '紫標' },
-  'gold': { color: '#eab308', emoji: '🟡', label: '金標' },
+const PIN_STATUS_CONFIG: Record<string, { color: string; borderColor: string; emoji: string; label: string }> = {
+  'red-star': { color: '#dc2626', borderColor: '#991b1b', emoji: '⭐', label: '紅星' },
+  'red': { color: '#ef4444', borderColor: '#dc2626', emoji: '🔴', label: '紅標' },
+  'green': { color: '#16a34a', borderColor: '#15803d', emoji: '🟢', label: '綠標' },
+  'purple': { color: '#9333ea', borderColor: '#7e22ce', emoji: '🟣', label: '紫標' },
+  'gold': { color: '#ca8a04', borderColor: '#a16207', emoji: '🟡', label: '金標' },
 };
 
 interface MapViewProps {
@@ -124,23 +124,31 @@ function MapMarkers({
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  width: 44px;
-                  height: 44px;
-                  background-color: ${statusConfig.color};
-                  border: 3px solid white;
+                  width: 32px;
+                  height: 32px;
+                  background: linear-gradient(135deg, ${statusConfig.color} 0%, ${statusConfig.borderColor} 100%);
+                  border: 2px solid white;
                   border-radius: 50%;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                  font-size: 22px;
-                  font-weight: bold;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.3);
+                  font-size: 16px;
                   cursor: pointer;
-                  transition: transform 0.2s;
+                  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+                  position: relative;
                 ">
-                  ${statusConfig.emoji}
+                  <div style="
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent);
+                    pointer-events: none;
+                  "></div>
+                  <span style="position: relative; z-index: 1;">${statusConfig.emoji}</span>
                 </div>
               `,
-              iconSize: [44, 44],
-              iconAnchor: [22, 22],
-              popupAnchor: [0, -22],
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+              popupAnchor: [0, -16],
             })}
           >
             <Popup>
