@@ -26,6 +26,7 @@ const RESULT_ICONS: Record<CallResult, React.ReactNode> = {
   'rejected': <XCircle size={16} className="text-red-500" />,
   'invalid': <PhoneOff size={16} className="text-gray-400" />,
   'closed': <Store size={16} className="text-gray-400" />,
+  'missed': <PhoneOff size={16} className="text-gray-500" />,
 };
 
 // 今日待撥清單：優先紅星，其次紅標（只限於分配的區域）
@@ -72,7 +73,8 @@ export default function CallLog() {
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [callResult, setCallResult] = useState<CallResult | null>(null);
   const [note, setNote] = useState('');
-  const [callHistory, setCallHistory] = useState<Record<string, { result: CallResult; note: string; time: string }>>({});
+  const [lineId, setLineId] = useState('');
+  const [callHistory, setCallHistory] = useState<Record<string, { result: CallResult; note: string; time: string; lineId?: string }>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // 從 localStorage 獲取登入的顧客開發人員信息
@@ -98,6 +100,7 @@ export default function CallLog() {
     setSelectedMinsu(minsu);
     setCallResult(callHistory[minsu.id]?.result ?? null);
     setNote(callHistory[minsu.id]?.note ?? '');
+    setLineId(callHistory[minsu.id]?.lineId ?? '');
     setShowCallDialog(true);
   };
 
@@ -106,17 +109,22 @@ export default function CallLog() {
       toast.error('請選擇通話結果');
       return;
     }
+    if (callResult === 'agreed' && !lineId.trim()) {
+      toast.error('請輸入 LINE ID');
+      return;
+    }
     if (selectedMinsu) {
       const now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
       setCallHistory(prev => ({
         ...prev,
-        [selectedMinsu.id]: { result: callResult, note, time: now }
+        [selectedMinsu.id]: { result: callResult, note, time: now, lineId: callResult === 'agreed' ? lineId : undefined }
       }));
       toast.success(`已登錄「${selectedMinsu.name}」的通話結果：${CALL_RESULT_CONFIG[callResult].label}`);
       if (callResult === 'agreed') {
         toast.success('🎉 已觸發自動化流程：LINE 邀請 + 菜單已自動發送！', { duration: 4000 });
       }
       setShowCallDialog(false);
+      setLineId('');
     }
   };
 
@@ -304,6 +312,19 @@ export default function CallLog() {
                     <div>✓ 自動推送歡迎訊息與數位菜單</div>
                     <div>✓ 進入 AI 意向追蹤流程</div>
                   </div>
+                </div>
+              )}
+
+              {/* LINE ID 輸入 */}
+              {callResult === 'agreed' && (
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-1.5">💬 輸入 LINE ID *</div>
+                  <Input
+                    placeholder="請輸入對方的 LINE ID"
+                    className="text-sm"
+                    value={lineId}
+                    onChange={e => setLineId(e.target.value)}
+                  />
                 </div>
               )}
 
