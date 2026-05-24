@@ -2,7 +2,7 @@
 // 設計風格：現代商業 CRM，深藍側欄 + 白底主內容區
 
 export type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
-export type CallResult = 'agreed' | 'hesitating' | 'rejected' | 'invalid' | 'closed';
+export type CallResult = 'agreed' | 'hesitating' | 'rejected' | 'invalid' | 'closed' | 'missed';
 export type IntentLabel = 'hot' | 'inquiring' | 'rejected' | 'seen';
 
 // 顧客開發人員介面
@@ -53,6 +53,9 @@ export interface Minsu {
   latitude: number;
   longitude: number;
   callSummaries?: CallSummary[]; // 通話摘要歷史
+  missedCallDate?: string; // 未接電話日期
+  missedCallRemindDays?: number; // 未接電話提醒天數（預設 7 天）
+  phoneStatus?: 'pending' | 'confirmed'; // 電話狀態：待確認或已確認
 }
 
 export interface Alert {
@@ -125,6 +128,7 @@ export const CALL_RESULT_CONFIG = {
   'rejected': { label: '❌ 拒絕加賴', color: 'bg-red-100 text-red-700' },
   'invalid': { label: '📵 空號', color: 'bg-gray-100 text-gray-600' },
   'closed': { label: '🚫 不營業', color: 'bg-gray-100 text-gray-500' },
+  'missed': { label: '📴 未接電話', color: 'bg-gray-100 text-gray-700' },
 } as const;
 
 // 意向標籤

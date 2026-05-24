@@ -165,7 +165,7 @@ export default function PerformanceReport() {
           {/* 日報內容 */}
           <TabsContent value="daily" className="space-y-6">
             {/* 日報統計卡片 */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <StatCard 
                 icon={<Phone size={20} className="text-white" />}
                 label="今日撥打通數"
@@ -184,12 +184,7 @@ export default function PerformanceReport() {
                 value={`${todayConversionRate}%`}
                 color="bg-orange-500"
               />
-              <StatCard 
-                icon={<Clock size={20} className="text-white" />}
-                label="平均通話時長"
-                value="4.3分鐘"
-                color="bg-purple-500"
-              />
+
             </div>
 
             {/* 日報詳細表格 */}
@@ -205,7 +200,6 @@ export default function PerformanceReport() {
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">撥打通數</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">成功加賴</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">顧客答應率</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">平均通話時長</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -219,7 +213,6 @@ export default function PerformanceReport() {
                         <td className="px-6 py-4 text-sm text-center">
                           <Badge className="bg-blue-100 text-blue-700 border-0">{data.conversionRate}%</Badge>
                         </td>
-                        <td className="px-6 py-4 text-sm text-center text-foreground">{data.avgCallDuration} 分鐘</td>
                       </tr>
                     ))}
                   </tbody>
