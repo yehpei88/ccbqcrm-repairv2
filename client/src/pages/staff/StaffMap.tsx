@@ -222,7 +222,7 @@ export default function StaffMap() {
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
             markers={MOCK_MINSU_DATA.map(minsu => {
-              const coords = MINSU_COORDINATES[minsu.id] || { lat: 24.7021, lng: 121.7377 };
+              const coords = markerLocationsRef.current.get(minsu.id) || { lat: 24.7021, lng: 121.7377 };
               return {
                 id: minsu.id,
                 lat: coords.lat,

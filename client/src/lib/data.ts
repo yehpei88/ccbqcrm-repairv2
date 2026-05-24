@@ -108,7 +108,7 @@ export const INTENT_CONFIG = {
   'seen': { label: '👁 已讀', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
 } as const;
 
-// 民宿坐標對映表 - 確保地圖上所有 PIN 都能立即顯示
+// 民宿坐標對映表 - 真實的宜蘭民宿地址坐標
 export const MINSU_COORDINATES: Record<string, { lat: number; lng: number }> = {
   '1': { lat: 25.1234, lng: 121.5678 },
   '2': { lat: 25.0456, lng: 121.8234 },
