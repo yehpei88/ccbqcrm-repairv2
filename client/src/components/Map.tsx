@@ -69,14 +69,14 @@
  *
  * -------------------------------
  * ✅ SUMMARY
- * - “map-attached” → AdvancedMarkerElement, DirectionsRenderer, Layers.
- * - “standalone” → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
- * - “data-only” → Place, Geometry utilities.
+ * - "map-attached" → AdvancedMarkerElement, DirectionsRenderer, Layers.
+ * - "standalone" → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
+ * - "data-only" → Place, Geometry utilities.
  */
 
 /// <reference types="@types/google.maps" />
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
 
@@ -89,22 +89,51 @@ declare global {
 const API_KEY = import.meta.env.VITE_FRONTEND_FORGE_API_KEY;
 const FORGE_BASE_URL =
   import.meta.env.VITE_FRONTEND_FORGE_API_URL ||
-  "https://forge.butterfly-effect.dev";
+  "https://forge.manus.ai";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
-function loadMapScript() {
-  return new Promise(resolve => {
+function loadMapScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if google.maps is already loaded
+    if (window.google?.maps) {
+      resolve();
+      return;
+    }
+
+    // Check if script is already being loaded
+    const existingScript = document.querySelector(
+      `script[src*="${MAPS_PROXY_URL}"]`
+    );
+    if (existingScript) {
+      // Wait for existing script to load
+      const checkGoogle = setInterval(() => {
+        if (window.google?.maps) {
+          clearInterval(checkGoogle);
+          resolve();
+        }
+      }, 100);
+      return;
+    }
+
     const script = document.createElement("script");
-    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
+    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry,routes`;
     script.async = true;
+    script.defer = true;
     script.crossOrigin = "anonymous";
+
     script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
+      if (window.google?.maps) {
+        resolve();
+      } else {
+        reject(new Error("Google Maps API failed to initialize"));
+      }
     };
+
     script.onerror = () => {
-      console.error("Failed to load Google Maps script");
+      console.error("Failed to load Google Maps script from:", script.src);
+      reject(new Error("Failed to load Google Maps script"));
     };
+
     document.head.appendChild(script);
   });
 }
@@ -124,24 +153,48 @@ export function MapView({
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const init = usePersistFn(async () => {
-    await loadMapScript();
-    if (!mapContainer.current) {
-      console.error("Map container not found");
-      return;
-    }
-    map.current = new window.google.maps.Map(mapContainer.current, {
-      zoom: initialZoom,
-      center: initialCenter,
-      mapTypeControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      streetViewControl: true,
-      mapId: "DEMO_MAP_ID",
-    });
-    if (onMapReady) {
-      onMapReady(map.current);
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (!mapContainer.current) {
+        throw new Error("Map container not found");
+      }
+
+      // Load the Google Maps script
+      await loadMapScript();
+
+      if (!window.google?.maps) {
+        throw new Error("Google Maps API not available");
+      }
+
+      // Initialize the map
+      map.current = new window.google.maps.Map(mapContainer.current, {
+        zoom: initialZoom,
+        center: initialCenter,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        streetViewControl: true,
+        mapId: "DEMO_MAP_ID",
+      });
+
+      // Call the callback if provided
+      if (onMapReady && map.current) {
+        onMapReady(map.current);
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error initializing map";
+      console.error("Map initialization error:", errorMessage);
+      setError(errorMessage);
+      setIsLoading(false);
     }
   });
 
@@ -150,6 +203,24 @@ export function MapView({
   }, [init]);
 
   return (
-    <div ref={mapContainer} className={cn("w-full h-[500px]", className)} />
+    <div className={cn("relative w-full h-full bg-gray-100", className)}>
+      <div ref={mapContainer} className="w-full h-full" />
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading map...</p>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+          <div className="text-center p-4">
+            <p className="text-sm text-red-600">Error loading map:</p>
+            <p className="text-xs text-red-500 mt-1">{error}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
