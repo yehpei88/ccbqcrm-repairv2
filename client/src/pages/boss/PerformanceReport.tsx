@@ -1,9 +1,9 @@
 // CC 代客烤肉 CRM 系統 — 績效管理報表（老闆管理介面）
-// 設計：日報、周報、顧客開發人員績效統計
+// 設計：日報、周報、月報、顧客開發人員績效統計
 
 import { useState } from 'react';
 import Layout, { PageHeader } from '@/components/Layout';
-import { DAILY_PERFORMANCE, WEEKLY_PERFORMANCE, STAFF_RECORDS } from '@/lib/data';
+import { DAILY_PERFORMANCE, WEEKLY_PERFORMANCE, MONTHLY_PERFORMANCE, STAFF_RECORDS } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
@@ -34,6 +34,10 @@ function StatCard({ icon, label, value, sub, color }: {
 
 export default function PerformanceReport() {
   const [selectedStaff, setSelectedStaff] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('2026-05');
+
+  // 獲取所有可用的月份
+  const availableMonths = Array.from(new Set(MONTHLY_PERFORMANCE.map(m => m.month))).sort().reverse();
 
   const handleExportExcel = () => {
     try {
@@ -83,11 +87,35 @@ export default function PerformanceReport() {
     轉換率: d.conversionRate,
   }));
 
+  // 月報統計
+  const monthData = MONTHLY_PERFORMANCE.filter(m => m.month === selectedMonth);
+  const monthTotalCalls = monthData.reduce((sum, d) => sum + d.totalCalls, 0);
+  const monthSuccessful = monthData.reduce((sum, d) => sum + d.successfulAdds, 0);
+  const monthConversionRate = monthTotalCalls > 0 ? Math.round((monthSuccessful / monthTotalCalls) * 100) : 0;
+  const monthContractCount = monthData.reduce((sum, d) => sum + d.contractCount, 0);
+  const monthTotalRevenue = monthData.reduce((sum, d) => sum + d.totalRevenue, 0);
+
+  // 月度趨勢圖表資料
+  const monthlyChartData = Array.from(new Set(MONTHLY_PERFORMANCE.map(m => m.month)))
+    .sort()
+    .map(month => {
+      const data = MONTHLY_PERFORMANCE.filter(m => m.month === month);
+      const totalCalls = data.reduce((sum, d) => sum + d.totalCalls, 0);
+      const totalSuccessful = data.reduce((sum, d) => sum + d.successfulAdds, 0);
+      const totalRevenue = data.reduce((sum, d) => sum + d.totalRevenue, 0);
+      return {
+        month: data[0]?.monthDisplay,
+        撥打通數: totalCalls,
+        成功加賴: totalSuccessful,
+        月度營收: totalRevenue,
+      };
+    });
+
   return (
     <Layout role="boss">
       <PageHeader
         title="績效管理報表"
-        subtitle="顧客開發人員日報・周報・成效統計"
+        subtitle="顧客開發人員日報・周報・月報・成效統計"
       />
 
       <div className="p-6 space-y-6">
@@ -116,15 +144,12 @@ export default function PerformanceReport() {
           </Button>
         </div>
 
-        {/* 篩選器 - 舊版本已移除 */}
-        {/* <div className="flex items-center gap-4">
-        </div>
-
         {/* 標籤頁 */}
         <Tabs defaultValue="daily" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="daily">日報</TabsTrigger>
             <TabsTrigger value="weekly">周報</TabsTrigger>
+            <TabsTrigger value="monthly">月報</TabsTrigger>
           </TabsList>
 
           {/* 日報內容 */}
@@ -295,6 +320,110 @@ export default function PerformanceReport() {
                 </ResponsiveContainer>
               </div>
             )}
+          </TabsContent>
+
+          {/* 月報內容 */}
+          <TabsContent value="monthly" className="space-y-6">
+            {/* 月份選擇 */}
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-foreground">選擇月份：</label>
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 border border-border rounded-lg text-sm bg-white"
+              >
+                {availableMonths.map(month => {
+                  const monthDisplay = MONTHLY_PERFORMANCE.find(m => m.month === month)?.monthDisplay;
+                  return (
+                    <option key={month} value={month}>{monthDisplay}</option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* 月報統計卡片 */}
+            <div className="grid grid-cols-4 gap-4">
+              <StatCard 
+                icon={<Phone size={20} className="text-white" />}
+                label="月度撥打通數"
+                value={monthTotalCalls}
+                color="bg-blue-500"
+              />
+              <StatCard 
+                icon={<CheckCircle size={20} className="text-white" />}
+                label="成功加賴"
+                value={monthSuccessful}
+                color="bg-green-500"
+              />
+              <StatCard 
+                icon={<TrendingUp size={20} className="text-white" />}
+                label="轉換率"
+                value={`${monthConversionRate}%`}
+                color="bg-orange-500"
+              />
+              <StatCard 
+                icon={<CheckCircle size={20} className="text-white" />}
+                label="簽約數"
+                value={monthContractCount}
+                sub={`營收: NT$${monthTotalRevenue.toLocaleString()}`}
+                color="bg-purple-500"
+              />
+            </div>
+
+            {/* 月報詳細表格 */}
+            <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+              <div className="px-6 py-4 border-b border-border">
+                <h3 className="font-semibold text-foreground">月報詳細統計 ({MONTHLY_PERFORMANCE.find(m => m.month === selectedMonth)?.monthDisplay})</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50 border-b border-border">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground">顧客開發人員</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">撥打通數</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">成功加賴</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">轉換率</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">簽約數</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">平均簽約金額</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-foreground">月度營收</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MONTHLY_PERFORMANCE.filter(m => m.month === selectedMonth).map((data, idx) => (
+                      <tr key={idx} className="border-b border-border hover:bg-muted/30 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-foreground">{data.staffName}</td>
+                        <td className="px-6 py-4 text-sm text-center text-foreground">{data.totalCalls}</td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          <Badge className="bg-green-100 text-green-700 border-0">{data.successfulAdds}</Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center">
+                          <Badge className="bg-blue-100 text-blue-700 border-0">{data.conversionRate}%</Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-center text-foreground">{data.contractCount}</td>
+                        <td className="px-6 py-4 text-sm text-center text-foreground">NT${data.avgContractValue.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-center font-medium text-foreground">NT${data.totalRevenue.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 月報趨勢圖表 */}
+            <div className="bg-white rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-foreground mb-4">月度趨勢圖表</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="撥打通數" stroke="#3b82f6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="成功加賴" stroke="#22c55e" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

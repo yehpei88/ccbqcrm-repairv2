@@ -272,6 +272,20 @@ export interface WeeklyPerformance {
   topDayCount: number;
 }
 
+export interface MonthlyPerformance {
+  month: string; // e.g., '2026-05'
+  monthDisplay: string; // e.g., '5月'
+  staffName: string;
+  totalCalls: number;
+  successfulAdds: number;
+  conversionRate: number;
+  contractCount: number; // 簽約數
+  avgContractValue: number; // 平均簽約金額
+  totalRevenue: number; // 月度總營收
+  topDay: string; // 最佳日期
+  topDayCount: number; // 最佳日期通話數
+}
+
 // 日報模擬資料
 export const DAILY_PERFORMANCE: DailyPerformance[] = [
   { date: '2026-05-11', staffName: '小陳', totalCalls: 8, successfulAdds: 5, conversionRate: 63, avgCallDuration: 4.2 },
@@ -317,4 +331,20 @@ export const AVAILABLE_AREAS = [
   '羅東鎮',
   '壯圍鄉',
   '大同鄉',
+];
+
+// 月報模擬資料
+export const MONTHLY_PERFORMANCE: MonthlyPerformance[] = [
+  // 2026年3月
+  { month: '2026-03', monthDisplay: '3月', staffName: '小陳', totalCalls: 156, successfulAdds: 98, conversionRate: 63, contractCount: 12, avgContractValue: 4583, totalRevenue: 55000, topDay: '2026-03-15', topDayCount: 9 },
+  { month: '2026-03', monthDisplay: '3月', staffName: '小林', totalCalls: 132, successfulAdds: 84, conversionRate: 64, contractCount: 10, avgContractValue: 5500, totalRevenue: 55000, topDay: '2026-03-18', topDayCount: 8 },
+  { month: '2026-03', monthDisplay: '3月', staffName: '小王', totalCalls: 98, successfulAdds: 50, conversionRate: 51, contractCount: 8, avgContractValue: 3125, totalRevenue: 25000, topDay: '2026-03-20', topDayCount: 7 },
+  // 2026年4月
+  { month: '2026-04', monthDisplay: '4月', staffName: '小陳', totalCalls: 182, successfulAdds: 115, conversionRate: 63, contractCount: 14, avgContractValue: 4357, totalRevenue: 61000, topDay: '2026-04-22', topDayCount: 10 },
+  { month: '2026-04', monthDisplay: '4月', staffName: '小林', totalCalls: 156, successfulAdds: 100, conversionRate: 64, contractCount: 12, avgContractValue: 5083, totalRevenue: 61000, topDay: '2026-04-25', topDayCount: 9 },
+  { month: '2026-04', monthDisplay: '4月', staffName: '小王', totalCalls: 112, successfulAdds: 57, conversionRate: 51, contractCount: 9, avgContractValue: 3556, totalRevenue: 32000, topDay: '2026-04-10', topDayCount: 8 },
+  // 2026年5月
+  { month: '2026-05', monthDisplay: '5月', staffName: '小陳', totalCalls: 168, successfulAdds: 106, conversionRate: 63, contractCount: 13, avgContractValue: 3692, totalRevenue: 48000, topDay: '2026-05-11', topDayCount: 9 },
+  { month: '2026-05', monthDisplay: '5月', staffName: '小林', totalCalls: 126, successfulAdds: 81, conversionRate: 64, contractCount: 10, avgContractValue: 4800, totalRevenue: 48000, topDay: '2026-05-09', topDayCount: 8 },
+  { month: '2026-05', monthDisplay: '5月', staffName: '小王', totalCalls: 105, successfulAdds: 54, conversionRate: 51, contractCount: 8, avgContractValue: 3000, totalRevenue: 24000, topDay: '2026-05-07', topDayCount: 7 },
 ];
