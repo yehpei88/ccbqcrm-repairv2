@@ -242,10 +242,10 @@ export default function PerformanceReport() {
           {/* 周報內容 */}
           <TabsContent value="weekly" className="space-y-6">
             {/* 周報統計卡片 */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <StatCard 
                 icon={<Phone size={20} className="text-white" />}
-                label="本周撥打通數"
+                label="本周撫打通數"
                 value={weekTotalCalls}
                 color="bg-blue-500"
               />
@@ -260,12 +260,6 @@ export default function PerformanceReport() {
                 label="顧客答應率"
                 value={`${weekConversionRate}%`}
                 color="bg-orange-500"
-              />
-              <StatCard 
-                icon={<Clock size={20} className="text-white" />}
-                label="平均每日撥打"
-                value={`${Math.round(weekTotalCalls / 7)} 通`}
-                color="bg-purple-500"
               />
             </div>
 

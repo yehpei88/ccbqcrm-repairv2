@@ -43,6 +43,7 @@ export default function BossCustomerDetail() {
     '1': '小陳', '2': '小王', '3': '小陳', '4': '小林', '5': '小林',
     '6': '小王', '7': '小陳', '8': '小林', '9': '小王', '10': '小陳'
   });
+  const [missedCalls, setMissedCalls] = useState<Record<string, { date: string; remindDays: number; phoneStatus: 'pending' | 'confirmed' }>>({});
 
   const areas = ['all', ...Array.from(new Set(MOCK_MINSU_DATA.map(m => m.area)))];
 
@@ -356,6 +357,90 @@ export default function BossCustomerDetail() {
                 </div>
               </div>
 
+              {/* 未接電話管理 */}
+              {missedCalls[selectedMinsu.id] && (
+                <div className="bg-white rounded-xl border border-border p-5 shadow-sm border-l-4 border-l-gray-500">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <span className="text-lg">📴</span>
+                      未接電話管理
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-1">未接日期</div>
+                        <div className="font-medium text-foreground">{missedCalls[selectedMinsu.id].date}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-1">電話狀態</div>
+                        <span className={cn(
+                          'text-xs px-2 py-0.5 rounded-full',
+                          missedCalls[selectedMinsu.id].phoneStatus === 'pending'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-green-100 text-green-700'
+                        )}>
+                          {missedCalls[selectedMinsu.id].phoneStatus === 'pending' ? '【待確認】' : '【已確認】'}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-1">提醒天數</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{missedCalls[selectedMinsu.id].remindDays} 天</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="30"
+                            value={missedCalls[selectedMinsu.id].remindDays}
+                            onChange={(e) => setMissedCalls(prev => ({
+                              ...prev,
+                              [selectedMinsu.id]: {
+                                ...prev[selectedMinsu.id],
+                                remindDays: parseInt(e.target.value) || 7
+                              }
+                            }))}
+                            className="w-12 px-2 py-1 text-xs border border-border rounded"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-1">修改狀態</div>
+                        <select
+                          value={missedCalls[selectedMinsu.id].phoneStatus}
+                          onChange={(e) => setMissedCalls(prev => ({
+                            ...prev,
+                            [selectedMinsu.id]: {
+                              ...prev[selectedMinsu.id],
+                              phoneStatus: e.target.value as 'pending' | 'confirmed'
+                            }
+                          }))}
+                          className="text-xs px-2 py-1 border border-border rounded bg-white"
+                        >
+                          <option value="pending">待確認</option>
+                          <option value="confirmed">已確認</option>
+                        </select>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-1.5"
+                      onClick={() => {
+                        setMissedCalls(prev => {
+                          const newMissed = { ...prev };
+                          delete newMissed[selectedMinsu.id];
+                          return newMissed;
+                        });
+                        toast.success('已移除未接電話記錄');
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      移除記錄
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* 通話摘要管理 */}
               <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -365,10 +450,33 @@ export default function BossCustomerDetail() {
                   </h3>
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="gap-1.5">
-                        <Mic size={13} />
-                        新增摘要
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="gap-1.5">
+                          <Mic size={13} />
+                          新增摘要
+                        </Button>
+                        {!missedCalls[selectedMinsu.id] && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => {
+                              setMissedCalls(prev => ({
+                                ...prev,
+                                [selectedMinsu.id]: {
+                                  date: new Date().toISOString().split('T')[0],
+                                  remindDays: 7,
+                                  phoneStatus: 'pending'
+                                }
+                              }));
+                              toast.success('已新增未接電話記錄');
+                            }}
+                          >
+                            <span className="text-lg">📴</span>
+                            標記未接
+                          </Button>
+                        )}
+                      </div>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
