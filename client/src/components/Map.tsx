@@ -145,7 +145,7 @@ export function MapView({
       )}
 
       <MapContainer
-        center={[initialCenter.lat, initialCenter.lng]}
+        center={[initialCenter.lat, initialCenter.lng] as L.LatLngExpression}
         zoom={initialZoom}
         style={{ width: "100%", height: "100%" }}
         className="z-0"
