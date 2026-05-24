@@ -33,7 +33,7 @@ export default function StaffMap() {
   const [sortBy, setSortBy] = useState<string>('score');
   const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const markersRef = useRef<Map<string, L.CircleMarker | L.Marker>>(new Map());
   const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   // 顧客開發人員只看未開發的（紅星、紅標）和已加LINE的（綠標）
@@ -80,7 +80,7 @@ export default function StaffMap() {
             setSelectedMinsu(minsu);
           });
 
-          markersRef.current.set(minsu.id, marker);
+          markersRef.current.set(minsu.id, marker as L.CircleMarker);
         }
       }
     };
@@ -100,6 +100,11 @@ export default function StaffMap() {
     if (mapRef.current && markerLocationsRef.current.has(minsu.id)) {
       const location = markerLocationsRef.current.get(minsu.id)!;
       mapRef.current.setView([location.lat, location.lng], 16);
+      // 開啟 popup
+      const marker = markersRef.current.get(minsu.id);
+      if (marker && 'openPopup' in marker) {
+        (marker as any).openPopup();
+      }
     }
   };
 

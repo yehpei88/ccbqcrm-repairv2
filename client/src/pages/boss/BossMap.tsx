@@ -32,7 +32,7 @@ export default function BossMap() {
   const [newStatus, setNewStatus] = useState<PinStatus | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const markersRef = useRef<Map<string, L.CircleMarker | L.Marker>>(new Map());
   const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   const filtered = MOCK_MINSU_DATA
@@ -75,7 +75,7 @@ export default function BossMap() {
             setSelectedMinsu(minsu);
           });
 
-          markersRef.current.set(minsu.id, marker);
+          markersRef.current.set(minsu.id, marker as L.CircleMarker);
         }
       }
     };
@@ -95,6 +95,11 @@ export default function BossMap() {
     if (mapRef.current && markerLocationsRef.current.has(minsu.id)) {
       const location = markerLocationsRef.current.get(minsu.id)!;
       mapRef.current.setView([location.lat, location.lng], 16);
+      // 開啟 popup
+      const marker = markersRef.current.get(minsu.id);
+      if (marker && 'openPopup' in marker) {
+        (marker as any).openPopup();
+      }
     }
   };
 
