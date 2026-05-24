@@ -52,41 +52,16 @@ export default function StaffMap() {
     const loadMarkers = async () => {
       if (!mapRef.current) return;
 
-      for (const minsu of filtered) {
+      for (const minsu of MOCK_MINSU_DATA) {
         const location = await geocodeAddress(minsu.address);
         if (location) {
           markerLocationsRef.current.set(minsu.id, location);
-
-          // 建立 Leaflet marker
-          const marker = L.circleMarker([location.lat, location.lng], {
-            radius: minsu.pinStatus === 'red-star' ? 10 : 7,
-            fillColor: PIN_COLORS[minsu.pinStatus],
-            color: '#ffffff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.9,
-          })
-            .bindPopup(
-              `<div style="font-family:'Noto Sans TC',sans-serif;padding:4px;min-width:180px">
-                <div style="font-weight:700;font-size:14px;margin-bottom:4px">${minsu.name}</div>
-                <div style="font-size:12px;color:#666;margin-bottom:2px">${PIN_STATUS_CONFIG[minsu.pinStatus].label}</div>
-                <div style="font-size:12px;color:#666">AI 評分：${minsu.aiScore}/50</div>
-                <div style="font-size:12px;color:#1e3a5f;font-weight:600;margin-top:4px">${minsu.phone}</div>
-              </div>`
-            )
-            .addTo(mapRef.current);
-
-          marker.on('click', () => {
-            setSelectedMinsu(minsu);
-          });
-
-          markersRef.current.set(minsu.id, marker as L.CircleMarker);
         }
       }
     };
 
     loadMarkers();
-  }, [filtered]);
+  }, []);
 
   const handleMapReady = (map: L.Map) => {
     mapRef.current = map;
@@ -246,7 +221,7 @@ export default function StaffMap() {
             onMapReady={handleMapReady}
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
-            markers={filtered.map(minsu => ({
+            markers={MOCK_MINSU_DATA.map(minsu => ({
               id: minsu.id,
               lat: markerLocationsRef.current.get(minsu.id)?.lat || 24.7021,
               lng: markerLocationsRef.current.get(minsu.id)?.lng || 121.7377,
