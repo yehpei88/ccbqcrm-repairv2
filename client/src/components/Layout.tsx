@@ -23,6 +23,7 @@ const BOSS_NAV: NavItem[] = [
   { path: '/boss/dashboard', icon: <LayoutDashboard size={18} />, label: '營運儀表板', role: 'boss' },
   { path: '/boss/vip', icon: <Star size={18} />, label: 'VIP 管理', role: 'boss' },
   { path: '/boss/map', icon: <Map size={18} />, label: '地圖全覽', role: 'boss' },
+  { path: '/boss/customer-detail', icon: <FileText size={18} />, label: '客戶備註管理', role: 'boss' },
   { path: '/boss/alerts', icon: <Bell size={18} />, label: 'AI 意向警示', badge: 2, role: 'boss' },
   { path: '/boss/pricing', icon: <Tag size={18} />, label: '定價建議', badge: 2, role: 'boss' },
   { path: '/boss/staff-record', icon: <BarChart3 size={18} />, label: '銷售人員紀錄', role: 'boss' },
