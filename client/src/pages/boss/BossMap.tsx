@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import L from 'leaflet';
 import Layout, { PageHeader } from '@/components/Layout';
-import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, type PinStatus, type Minsu } from '@/lib/data';
+import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, MINSU_COORDINATES, type Minsu } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -180,14 +180,17 @@ export default function BossMap() {
             onMapReady={handleMapReady}
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
-            markers={MOCK_MINSU_DATA.map(minsu => ({
-              id: minsu.id,
-              lat: markerLocationsRef.current.get(minsu.id)?.lat || 24.7021,
-              lng: markerLocationsRef.current.get(minsu.id)?.lng || 121.7377,
-              title: minsu.name,
-              description: `${minsu.area} · ${minsu.phone}`,
-              pinStatus: minsu.pinStatus,
-            }))}
+            markers={MOCK_MINSU_DATA.map(minsu => {
+              const coords = MINSU_COORDINATES[minsu.id] || { lat: 24.7021, lng: 121.7377 };
+              return {
+                id: minsu.id,
+                lat: coords.lat,
+                lng: coords.lng,
+                title: minsu.name,
+                description: `${minsu.area} · ${minsu.phone}`,
+                pinStatus: minsu.pinStatus,
+              };
+            })}
           />
 
           {/* 選中民宿快速操作面板 */}

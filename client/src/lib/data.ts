@@ -108,6 +108,20 @@ export const INTENT_CONFIG = {
   'seen': { label: '👁 已讀', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
 } as const;
 
+// 民宿坐標對映表 - 確保地圖上所有 PIN 都能立即顯示
+export const MINSU_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  '1': { lat: 25.1234, lng: 121.5678 },
+  '2': { lat: 25.0456, lng: 121.8234 },
+  '3': { lat: 24.9123, lng: 121.6789 },
+  '4': { lat: 24.8567, lng: 121.7234 },
+  '5': { lat: 24.7890, lng: 121.5234 },
+  '6': { lat: 24.7234, lng: 121.7890 },
+  '7': { lat: 24.6123, lng: 121.8234 },
+  '8': { lat: 24.8234, lng: 121.8901 },
+  '9': { lat: 24.9567, lng: 121.9234 },
+  '10': { lat: 24.5678, lng: 121.4234 },
+};
+
 // 模擬民宿資料
 export const MOCK_MINSU_DATA: Minsu[] = [
   { id: '1', name: '礁溪山景民宿', address: '宜蘭縣礁溪鄉溫泉路 12 號', phone: '03-9881234', area: '礁溪鄉', pinStatus: 'gold', aiScore: 42, callResult: 'agreed', intentLabel: 'hot', cooperationCount: 5, lastCoopDate: '2026-04-15', totalRevenue: 28500, hasRainShelter: true, isPackage: true, distanceFromCity: 8, lineAdded: true, rfmR: 27, rfmF: 5, rfmM: 28500 },
