@@ -5,6 +5,22 @@ export type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
 export type CallResult = 'agreed' | 'hesitating' | 'rejected' | 'invalid' | 'closed';
 export type IntentLabel = 'hot' | 'inquiring' | 'rejected' | 'seen';
 
+// 工讀生介面
+export interface Staff {
+  id: string;
+  name: string;
+  assignedAreas: string[]; // 分配的區域列表
+  createdAt: string;
+}
+
+// 區域分配記錄
+export interface AreaAssignment {
+  staffId: string;
+  staffName: string;
+  areas: string[];
+  assignedAt: string;
+}
+
 export interface Minsu {
   id: string;
   name: string;
@@ -271,4 +287,34 @@ export const WEEKLY_PERFORMANCE: WeeklyPerformance[] = [
   { weekStart: '2026-05-05', weekEnd: '2026-05-11', staffName: '小陳', totalCalls: 56, successfulAdds: 35, conversionRate: 63, avgCallsPerDay: 8, topDay: '2026-05-11', topDayCount: 9 },
   { weekStart: '2026-05-05', weekEnd: '2026-05-11', staffName: '小林', totalCalls: 42, successfulAdds: 27, conversionRate: 64, avgCallsPerDay: 6, topDay: '2026-05-09', topDayCount: 8 },
   { weekStart: '2026-05-05', weekEnd: '2026-05-11', staffName: '小王', totalCalls: 35, successfulAdds: 18, conversionRate: 51, avgCallsPerDay: 5, topDay: '2026-05-07', topDayCount: 7 },
+];
+
+// 工讀生模擬資料
+export const MOCK_STAFF: Staff[] = [
+  { id: 'staff-1', name: '小陳', assignedAreas: ['礁溪鄉', '員山鄉', '壯圍鄉'], createdAt: '2026-01-15' },
+  { id: 'staff-2', name: '小林', assignedAreas: ['冬山鄉', '羅東鎮', '三星鄉'], createdAt: '2026-02-20' },
+  { id: 'staff-3', name: '小王', assignedAreas: ['蘇澳鎮', '五結鄉', '頭城鎮'], createdAt: '2026-03-10' },
+  { id: 'staff-4', name: '小李', assignedAreas: ['大同鄉'], createdAt: '2026-04-05' },
+];
+
+// 區域分配記錄
+export const AREA_ASSIGNMENTS: AreaAssignment[] = [
+  { staffId: 'staff-1', staffName: '小陳', areas: ['礁溪鄉', '員山鄉', '壯圍鄉'], assignedAt: '2026-05-20' },
+  { staffId: 'staff-2', staffName: '小林', areas: ['冬山鄉', '羅東鎮', '三星鄉'], assignedAt: '2026-05-20' },
+  { staffId: 'staff-3', staffName: '小王', areas: ['蘇澳鎮', '五結鄉', '頭城鎮'], assignedAt: '2026-05-20' },
+  { staffId: 'staff-4', staffName: '小李', areas: ['大同鄉'], assignedAt: '2026-05-20' },
+];
+
+// 所有可用的區域列表
+export const AVAILABLE_AREAS = [
+  '蘇澳鎮',
+  '礁溪鄉',
+  '五結鄉',
+  '頭城鎮',
+  '員山鄉',
+  '冬山鄉',
+  '三星鄉',
+  '羅東鎮',
+  '壯圍鄉',
+  '大同鄉',
 ];

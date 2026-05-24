@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import L from 'leaflet';
 import Layout, { PageHeader } from '@/components/Layout';
-import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, MINSU_COORDINATES, type Minsu } from '@/lib/data';
+import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, MINSU_COORDINATES, MOCK_STAFF, type Minsu } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,8 +37,12 @@ export default function StaffMap() {
   const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   // 顧客開發人員只看未開發的（紅星、紅標）和已加LINE的（綠標）
+  const currentStaff = MOCK_STAFF[0];
+  const assignedAreas = currentStaff?.assignedAreas || [];
+
   const filtered = MOCK_MINSU_DATA
     .filter(m => {
+      if (!assignedAreas.includes(m.area)) return false;
       if (filterStatus === 'all') return true;
       return m.pinStatus === filterStatus;
     })
@@ -94,7 +98,7 @@ export default function StaffMap() {
     <Layout role="staff">
       <PageHeader
         title="地圖作業"
-        subtitle="宜蘭全區民宿開發地圖 — 點擊 Pin 查看詳情"
+        subtitle={`${currentStaff.name} 負責區域：${assignedAreas.join('、')} — 點擊 Pin 查看詳情`}
       />
 
       <div className="flex h-[calc(100vh-73px)]">

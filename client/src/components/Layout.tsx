@@ -27,6 +27,7 @@ const BOSS_NAV: NavItem[] = [
   { path: '/boss/pricing', icon: <Tag size={18} />, label: '定價建議', badge: 2, role: 'boss' },
   { path: '/boss/staff-record', icon: <BarChart3 size={18} />, label: '銷售人員紀錄', role: 'boss' },
   { path: '/boss/performance', icon: <BarChart3 size={18} />, label: '績效管理報表', role: 'boss' },
+  { path: '/boss/area-assignment', icon: <Users size={18} />, label: '區域分配', role: 'boss' },
 ];
 
 const STAFF_NAV: NavItem[] = [

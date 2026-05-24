@@ -15,6 +15,7 @@ import AlertsPage from "./pages/boss/AlertsPage";
 import PricingPage from "./pages/boss/PricingPage";
 import StaffWorkRecord from "./pages/boss/StaffWorkRecord";
 import PerformanceReport from "./pages/boss/PerformanceReport";
+import AreaAssignment from "./pages/boss/AreaAssignment";
 // 顧客開發人員頁面
 import StaffMap from "./pages/staff/StaffMap";
 import CallLog from "./pages/staff/CallLog";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/boss/pricing" component={PricingPage} />
       <Route path="/boss/staff-record" component={StaffWorkRecord} />
       <Route path="/boss/performance" component={PerformanceReport} />
+      <Route path="/boss/area-assignment" component={AreaAssignment} />
       {/* 顧客開發人員介面 */}
       <Route path="/staff/map" component={StaffMap} />
       <Route path="/staff/call" component={CallLog} />
