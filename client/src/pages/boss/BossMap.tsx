@@ -43,16 +43,17 @@ export default function BossMap() {
     .sort((a, b) => b.aiScore - a.aiScore);
 
   // 使用 geocodeAddress 進行地理編碼
+  const [geocodingComplete, setGeocodingComplete] = useState(false);
   useEffect(() => {
     const loadMarkers = async () => {
-      if (!mapRef.current) return;
-
       for (const minsu of MOCK_MINSU_DATA) {
         const location = await geocodeAddress(minsu.address);
         if (location) {
           markerLocationsRef.current.set(minsu.id, location);
         }
       }
+      // 地理編碼完成後強制重新渲染
+      setGeocodingComplete(true);
     };
 
     loadMarkers();
@@ -180,7 +181,7 @@ export default function BossMap() {
             onMapReady={handleMapReady}
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
-            markers={MOCK_MINSU_DATA.map(minsu => {
+            markers={geocodingComplete ? MOCK_MINSU_DATA.map(minsu => {
               const coords = markerLocationsRef.current.get(minsu.id) || { lat: 24.7021, lng: 121.7377 };
               return {
                 id: minsu.id,
@@ -190,7 +191,8 @@ export default function BossMap() {
                 description: `${minsu.area} · ${minsu.phone}`,
                 pinStatus: minsu.pinStatus,
               };
-            })}
+            }) : []}
+            key={geocodingComplete ? 'geocoded' : 'initial'}
           />
 
           {/* 選中民宿快速操作面板 */}

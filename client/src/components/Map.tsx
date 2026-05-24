@@ -119,6 +119,7 @@ function MapMarkers({
             key={marker.id}
             position={[marker.lat, marker.lng]}
             icon={L.divIcon({
+              className: '',
               html: `
                 <div style="
                   display: flex;

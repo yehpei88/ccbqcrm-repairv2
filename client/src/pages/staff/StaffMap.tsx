@@ -48,16 +48,16 @@ export default function StaffMap() {
       return 0;
     });
 
+  const [geocodingComplete, setGeocodingComplete] = useState(false);
   useEffect(() => {
     const loadMarkers = async () => {
-      if (!mapRef.current) return;
-
       for (const minsu of MOCK_MINSU_DATA) {
         const location = await geocodeAddress(minsu.address);
         if (location) {
           markerLocationsRef.current.set(minsu.id, location);
         }
       }
+      setGeocodingComplete(true);
     };
 
     loadMarkers();
@@ -221,7 +221,7 @@ export default function StaffMap() {
             onMapReady={handleMapReady}
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
-            markers={MOCK_MINSU_DATA.map(minsu => {
+            markers={geocodingComplete ? MOCK_MINSU_DATA.map(minsu => {
               const coords = markerLocationsRef.current.get(minsu.id) || { lat: 24.7021, lng: 121.7377 };
               return {
                 id: minsu.id,
@@ -231,7 +231,8 @@ export default function StaffMap() {
                 description: `${minsu.area} · ${minsu.phone}`,
                 pinStatus: minsu.pinStatus,
               };
-            })}
+            }) : []}
+            key={geocodingComplete ? 'geocoded' : 'initial'}
           />
           {/* 統計覆蓋層 */}
           <div className="absolute top-20 left-4 bg-white rounded-xl shadow-md p-3 text-xs">
