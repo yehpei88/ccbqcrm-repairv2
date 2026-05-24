@@ -124,7 +124,7 @@ export default function PerformanceReport() {
   return (
     <Layout role="boss">
       <PageHeader
-        title="績效結報"
+        title="績效管理報表"
         subtitle="顧客開發人員日報・周報・結報統計"
       />
 
