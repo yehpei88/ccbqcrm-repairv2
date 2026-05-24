@@ -182,7 +182,7 @@ export default function BossMap() {
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
             markers={geocodingComplete ? MOCK_MINSU_DATA.map(minsu => {
-              const coords = markerLocationsRef.current.get(minsu.id) || { lat: 24.7021, lng: 121.7377 };
+              const coords = markerLocationsRef.current.get(minsu.id) || { lat: minsu.latitude, lng: minsu.longitude };
               return {
                 id: minsu.id,
                 lat: coords.lat,
@@ -191,7 +191,14 @@ export default function BossMap() {
                 description: `${minsu.area} · ${minsu.phone}`,
                 pinStatus: minsu.pinStatus,
               };
-            }) : []}
+            }) : MOCK_MINSU_DATA.map(minsu => ({
+              id: minsu.id,
+              lat: minsu.latitude,
+              lng: minsu.longitude,
+              title: minsu.name,
+              description: `${minsu.area} · ${minsu.phone}`,
+              pinStatus: minsu.pinStatus,
+            }))}
             key={geocodingComplete ? 'geocoded' : 'initial'}
           />
 
