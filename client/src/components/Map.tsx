@@ -43,6 +43,17 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
+/**
+ * PIN 狀態配置
+ */
+const PIN_STATUS_CONFIG: Record<string, { color: string; emoji: string; label: string }> = {
+  'red-star': { color: '#ef4444', emoji: '⭐', label: '紅星' },
+  'red': { color: '#f87171', emoji: '🔴', label: '紅標' },
+  'green': { color: '#22c55e', emoji: '🟢', label: '綠標' },
+  'purple': { color: '#a855f7', emoji: '🟣', label: '紫標' },
+  'gold': { color: '#eab308', emoji: '🟡', label: '金標' },
+};
+
 interface MapViewProps {
   className?: string;
   initialCenter?: { lat: number; lng: number };
@@ -54,6 +65,7 @@ interface MapViewProps {
     lng: number;
     title: string;
     description?: string;
+    pinStatus?: 'red-star' | 'red' | 'green' | 'purple' | 'gold';
   }>;
 }
 
@@ -77,7 +89,7 @@ function MapInitializer({
 }
 
 /**
- * 標記點元件
+ * 標記點元件 - 支援 PIN 狀態顯示
  * 預留 Google Maps 整合點：
  * 可在此處替換為 google.maps.marker.AdvancedMarkerElement
  */
@@ -90,6 +102,7 @@ function MapMarkers({
     lng: number;
     title: string;
     description?: string;
+    pinStatus?: 'red-star' | 'red' | 'green' | 'purple' | 'gold';
   }>;
 }) {
   if (!markers || markers.length === 0) {
@@ -98,18 +111,54 @@ function MapMarkers({
 
   return (
     <>
-      {markers.map((marker) => (
-        <Marker key={marker.id} position={[marker.lat, marker.lng]}>
-          <Popup>
-            <div className="text-sm">
-              <h3 className="font-semibold">{marker.title}</h3>
-              {marker.description && (
-                <p className="text-gray-600 mt-1">{marker.description}</p>
-              )}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      {markers.map((marker) => {
+        const statusConfig = marker.pinStatus ? PIN_STATUS_CONFIG[marker.pinStatus] : PIN_STATUS_CONFIG['red'];
+        
+        return (
+          <Marker
+            key={marker.id}
+            position={[marker.lat, marker.lng]}
+            icon={L.divIcon({
+              html: `
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  width: 44px;
+                  height: 44px;
+                  background-color: ${statusConfig.color};
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  font-size: 22px;
+                  font-weight: bold;
+                  cursor: pointer;
+                  transition: transform 0.2s;
+                ">
+                  ${statusConfig.emoji}
+                </div>
+              `,
+              iconSize: [44, 44],
+              iconAnchor: [22, 22],
+              popupAnchor: [0, -22],
+            })}
+          >
+            <Popup>
+              <div className="text-sm">
+                <h3 className="font-semibold">{marker.title}</h3>
+                {marker.pinStatus && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    <strong>狀態：</strong>{statusConfig.label}
+                  </p>
+                )}
+                {marker.description && (
+                  <p className="text-gray-600 mt-1 text-xs">{marker.description}</p>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
     </>
   );
 }
@@ -121,13 +170,11 @@ export function MapView({
   onMapReady,
   markers,
 }: MapViewProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleMapReady = usePersistFn((map: L.Map) => {
     mapRef.current = map;
-    setIsLoading(false);
     if (onMapReady) {
       onMapReady(map);
     }
@@ -136,11 +183,9 @@ export function MapView({
   return (
     <div className={cn("relative w-full h-full bg-gray-100", className)}>
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-50 z-10">
-          <div className="text-center p-4">
-            <p className="text-sm text-red-600">Error loading map:</p>
-            <p className="text-xs text-red-500 mt-1">{error}</p>
-          </div>
+        <div className="absolute top-4 left-4 bg-red-50 border border-red-200 rounded-lg p-4 z-50 max-w-xs">
+          <p className="text-sm text-red-600">Error loading map:</p>
+          <p className="text-xs text-red-500 mt-1">{error}</p>
         </div>
       )}
 
@@ -161,7 +206,7 @@ export function MapView({
         />
 
         {/* 
-          標記點渲染
+          標記點渲染 - 支援 PIN 狀態顯示
           預留 Google Maps 整合點：
           可在此替換為 google.maps.marker.AdvancedMarkerElement
         */}
@@ -170,68 +215,34 @@ export function MapView({
         {/* 地圖初始化回調 */}
         <MapInitializer onMapReady={handleMapReady} />
       </MapContainer>
-
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 z-10">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-600">Loading map...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 /**
- * 工具函數：用於未來 Google Maps 整合
- * 
- * 地理編碼（地址 → 坐標）
- * TODO: 當 Google Maps API 可用時，使用 google.maps.Geocoder
+ * 地理編碼函數 - 使用 OpenStreetMap Nominatim API
+ * 預留 Google Maps 整合點：
+ * 可在此替換為 google.maps.Geocoder
  */
 export async function geocodeAddress(
   address: string
 ): Promise<{ lat: number; lng: number } | null> {
-  // 當前使用 OpenStreetMap Nominatim API
-  // 未來可替換為 google.maps.Geocoder
   try {
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
     );
     const data = await response.json();
+
     if (data && data.length > 0) {
       return {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon),
       };
     }
+
     return null;
   } catch (error) {
     console.error("Geocoding error:", error);
     return null;
   }
-}
-
-/**
- * 工具函數：計算兩點之間的距離
- * TODO: 當 Google Maps API 可用時，使用 google.maps.geometry.spherical
- */
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
-  // Haversine 公式
-  const R = 6371; // 地球半徑（公里）
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
 }

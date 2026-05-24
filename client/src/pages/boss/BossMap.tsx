@@ -211,6 +211,7 @@ export default function BossMap() {
               lng: markerLocationsRef.current.get(minsu.id)?.lng || 121.7377,
               title: minsu.name,
               description: `${minsu.area} · ${minsu.phone}`,
+              pinStatus: minsu.pinStatus,
             }))}
           />
 

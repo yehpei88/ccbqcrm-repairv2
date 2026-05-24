@@ -252,6 +252,7 @@ export default function StaffMap() {
               lng: markerLocationsRef.current.get(minsu.id)?.lng || 121.7377,
               title: minsu.name,
               description: `${minsu.area} · ${minsu.phone}`,
+              pinStatus: minsu.pinStatus,
             }))}
           />
           {/* 統計覆蓋層 */}
