@@ -1,226 +1,237 @@
 /**
- * GOOGLE MAPS FRONTEND INTEGRATION - ESSENTIAL GUIDE
- *
+ * MAP COMPONENT - Leaflet Implementation
+ * 
+ * 當前使用 Leaflet 作為地圖基礎
+ * 預留 Google Maps API 串接位置，可在以下位置無縫切換：
+ * 1. 標記點渲染 (Marker rendering)
+ * 2. 地理編碼 (Geocoding)
+ * 3. 路線規劃 (Directions/Routing)
+ * 
  * USAGE FROM PARENT COMPONENT:
  * ======
- *
- * const mapRef = useRef<google.maps.Map | null>(null);
- *
+ * 
+ * const mapRef = useRef<L.Map | null>(null);
+ * 
  * <MapView
- *   initialCenter={{ lat: 40.7128, lng: -74.0060 }}
- *   initialZoom={15}
+ *   initialCenter={{ lat: 25.0330, lng: 121.5438 }}
+ *   initialZoom={13}
  *   onMapReady={(map) => {
- *     mapRef.current = map; // Store to control map from parent anytime, google map itself is in charge of the re-rendering, not react state.
- * </MapView>
- *
+ *     mapRef.current = map;
+ *   }}
+ * />
+ * 
  * ======
- * Available Libraries and Core Features:
- * -------------------------------
- * 📍 MARKER (from `marker` library)
- * - Attaches to map using { map, position }
- * new google.maps.marker.AdvancedMarkerElement({
- *   map,
- *   position: { lat: 37.7749, lng: -122.4194 },
- *   title: "San Francisco",
- * });
- *
- * -------------------------------
- * 🏢 PLACES (from `places` library)
- * - Does not attach directly to map; use data with your map manually.
- * const place = new google.maps.places.Place({ id: PLACE_ID });
- * await place.fetchFields({ fields: ["displayName", "location"] });
- * map.setCenter(place.location);
- * new google.maps.marker.AdvancedMarkerElement({ map, position: place.location });
- *
- * -------------------------------
- * 🧭 GEOCODER (from `geocoding` library)
- * - Standalone service; manually apply results to map.
- * const geocoder = new google.maps.Geocoder();
- * geocoder.geocode({ address: "New York" }, (results, status) => {
- *   if (status === "OK" && results[0]) {
- *     map.setCenter(results[0].geometry.location);
- *     new google.maps.marker.AdvancedMarkerElement({
- *       map,
- *       position: results[0].geometry.location,
- *     });
- *   }
- * });
- *
- * -------------------------------
- * 📐 GEOMETRY (from `geometry` library)
- * - Pure utility functions; not attached to map.
- * const dist = google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
- *
- * -------------------------------
- * 🛣️ ROUTES (from `routes` library)
- * - Combines DirectionsService (standalone) + DirectionsRenderer (map-attached)
- * const directionsService = new google.maps.DirectionsService();
- * const directionsRenderer = new google.maps.DirectionsRenderer({ map });
- * directionsService.route(
- *   { origin, destination, travelMode: "DRIVING" },
- *   (res, status) => status === "OK" && directionsRenderer.setDirections(res)
- * );
- *
- * -------------------------------
- * 🌦️ MAP LAYERS (attach directly to map)
- * - new google.maps.TrafficLayer().setMap(map);
- * - new google.maps.TransitLayer().setMap(map);
- * - new google.maps.BicyclingLayer().setMap(map);
- *
- * -------------------------------
- * ✅ SUMMARY
- * - "map-attached" → AdvancedMarkerElement, DirectionsRenderer, Layers.
- * - "standalone" → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
- * - "data-only" → Place, Geometry utilities.
+ * 
+ * 未來 Google Maps 整合點：
+ * - 使用 google.maps.Marker 替代 L.marker
+ * - 使用 google.maps.Geocoder 進行地址查詢
+ * - 使用 google.maps.DirectionsService 規劃路線
  */
 
-/// <reference types="@types/google.maps" />
-
 import { useEffect, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
+import "leaflet/dist/leaflet.css";
 
-declare global {
-  interface Window {
-    google?: typeof google;
-  }
-}
-
-const API_KEY = import.meta.env.VITE_FRONTEND_FORGE_API_KEY;
-const FORGE_BASE_URL =
-  import.meta.env.VITE_FRONTEND_FORGE_API_URL ||
-  "https://forge.manus.ai";
-const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
-
-function loadMapScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Check if google.maps is already loaded
-    if (window.google?.maps) {
-      resolve();
-      return;
-    }
-
-    // Check if script is already being loaded
-    const existingScript = document.querySelector(
-      `script[src*="${MAPS_PROXY_URL}"]`
-    );
-    if (existingScript) {
-      // Wait for existing script to load
-      const checkGoogle = setInterval(() => {
-        if (window.google?.maps) {
-          clearInterval(checkGoogle);
-          resolve();
-        }
-      }, 100);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry,routes`;
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = "anonymous";
-
-    script.onload = () => {
-      if (window.google?.maps) {
-        resolve();
-      } else {
-        reject(new Error("Google Maps API failed to initialize"));
-      }
-    };
-
-    script.onerror = () => {
-      console.error("Failed to load Google Maps script from:", script.src);
-      reject(new Error("Failed to load Google Maps script"));
-    };
-
-    document.head.appendChild(script);
-  });
-}
+// 修復 Leaflet 默認圖標問題
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
 
 interface MapViewProps {
   className?: string;
-  initialCenter?: google.maps.LatLngLiteral;
+  initialCenter?: { lat: number; lng: number };
   initialZoom?: number;
-  onMapReady?: (map: google.maps.Map) => void;
+  onMapReady?: (map: L.Map) => void;
+  markers?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    title: string;
+    description?: string;
+  }>;
+}
+
+/**
+ * 內部元件：用於在 MapContainer 內部訪問地圖實例
+ */
+function MapInitializer({
+  onMapReady,
+}: {
+  onMapReady?: (map: L.Map) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (onMapReady) {
+      onMapReady(map);
+    }
+  }, [map, onMapReady]);
+
+  return null;
+}
+
+/**
+ * 標記點元件
+ * 預留 Google Maps 整合點：
+ * 可在此處替換為 google.maps.marker.AdvancedMarkerElement
+ */
+function MapMarkers({
+  markers,
+}: {
+  markers?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    title: string;
+    description?: string;
+  }>;
+}) {
+  if (!markers || markers.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {markers.map((marker) => (
+        <Marker key={marker.id} position={[marker.lat, marker.lng]}>
+          <Popup>
+            <div className="text-sm">
+              <h3 className="font-semibold">{marker.title}</h3>
+              {marker.description && (
+                <p className="text-gray-600 mt-1">{marker.description}</p>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  );
 }
 
 export function MapView({
   className,
-  initialCenter = { lat: 37.7749, lng: -122.4194 },
-  initialZoom = 12,
+  initialCenter = { lat: 25.0330, lng: 121.5438 }, // 台灣中心
+  initialZoom = 13,
   onMapReady,
+  markers,
 }: MapViewProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
-  const init = usePersistFn(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      if (!mapContainer.current) {
-        throw new Error("Map container not found");
-      }
-
-      // Load the Google Maps script
-      await loadMapScript();
-
-      if (!window.google?.maps) {
-        throw new Error("Google Maps API not available");
-      }
-
-      // Initialize the map
-      map.current = new window.google.maps.Map(mapContainer.current, {
-        zoom: initialZoom,
-        center: initialCenter,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
-        streetViewControl: true,
-        mapId: "DEMO_MAP_ID",
-      });
-
-      // Call the callback if provided
-      if (onMapReady && map.current) {
-        onMapReady(map.current);
-      }
-
-      setIsLoading(false);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error initializing map";
-      console.error("Map initialization error:", errorMessage);
-      setError(errorMessage);
-      setIsLoading(false);
+  const handleMapReady = usePersistFn((map: L.Map) => {
+    mapRef.current = map;
+    setIsLoading(false);
+    if (onMapReady) {
+      onMapReady(map);
     }
   });
 
-  useEffect(() => {
-    init();
-  }, [init]);
-
   return (
     <div className={cn("relative w-full h-full bg-gray-100", className)}>
-      <div ref={mapContainer} className="w-full h-full" />
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-600">Loading map...</p>
-          </div>
-        </div>
-      )}
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+        <div className="absolute inset-0 flex items-center justify-center bg-red-50 z-10">
           <div className="text-center p-4">
             <p className="text-sm text-red-600">Error loading map:</p>
             <p className="text-xs text-red-500 mt-1">{error}</p>
           </div>
         </div>
       )}
+
+      <MapContainer
+        center={[initialCenter.lat, initialCenter.lng]}
+        zoom={initialZoom}
+        style={{ width: "100%", height: "100%" }}
+        className="z-0"
+      >
+        {/* 
+          地圖圖層來源
+          預留 Google Maps 整合點：
+          可在此替換為 google.maps.TileLayer 或其他圖層
+        */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* 
+          標記點渲染
+          預留 Google Maps 整合點：
+          可在此替換為 google.maps.marker.AdvancedMarkerElement
+        */}
+        <MapMarkers markers={markers} />
+
+        {/* 地圖初始化回調 */}
+        <MapInitializer onMapReady={handleMapReady} />
+      </MapContainer>
+
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 z-10">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading map...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+/**
+ * 工具函數：用於未來 Google Maps 整合
+ * 
+ * 地理編碼（地址 → 坐標）
+ * TODO: 當 Google Maps API 可用時，使用 google.maps.Geocoder
+ */
+export async function geocodeAddress(
+  address: string
+): Promise<{ lat: number; lng: number } | null> {
+  // 當前使用 OpenStreetMap Nominatim API
+  // 未來可替換為 google.maps.Geocoder
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Geocoding error:", error);
+    return null;
+  }
+}
+
+/**
+ * 工具函數：計算兩點之間的距離
+ * TODO: 當 Google Maps API 可用時，使用 google.maps.geometry.spherical
+ */
+export function calculateDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  // Haversine 公式
+  const R = 6371; // 地球半徑（公里）
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }

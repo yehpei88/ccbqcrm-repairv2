@@ -1,7 +1,8 @@
 // CC 代客烤肉 CRM 系統 — 顧客開發人員地圖作業頁面
 // 設計：地圖 Pin 操作，過濾器，AI 推薦優先撥打
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import L from 'leaflet';
 import Layout, { PageHeader } from '@/components/Layout';
 import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, type PinStatus, type Minsu } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   ArrowUpDown, Info, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MapView } from '@/components/Map';
+import { MapView, geocodeAddress } from '@/components/Map';
 
 const PIN_COLORS: Record<PinStatus, string> = {
   'red-star': '#ef4444',
@@ -31,8 +32,9 @@ export default function StaffMap() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('score');
   const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<Map<string, { marker: google.maps.Marker; location: google.maps.LatLng }>>(new Map());
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   // 顧客開發人員只看未開發的（紅星、紅標）和已加LINE的（綠標）
   const filtered = MOCK_MINSU_DATA
@@ -46,49 +48,48 @@ export default function StaffMap() {
       return 0;
     });
 
-  const handleMapReady = (map: google.maps.Map) => {
-    mapRef.current = map;
-    const geocoder = new google.maps.Geocoder();
+  useEffect(() => {
+    const loadMarkers = async () => {
+      if (!mapRef.current) return;
 
-    filtered.forEach(minsu => {
-      geocoder.geocode({ address: minsu.address }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const location = results[0].geometry.location;
-          const marker = new google.maps.Marker({
-            position: location,
-            map,
-            title: minsu.name,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: minsu.pinStatus === 'red-star' ? 13 : 9,
-              fillColor: PIN_COLORS[minsu.pinStatus],
-              fillOpacity: 0.9,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
-            },
-          });
+      for (const minsu of filtered) {
+        const location = await geocodeAddress(minsu.address);
+        if (location) {
+          markerLocationsRef.current.set(minsu.id, location);
 
-          // 儲存 marker 和位置資訊
-          markersRef.current.set(minsu.id, { marker, location });
-
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div style="font-family:'Noto Sans TC',sans-serif;padding:4px;min-width:180px">
+          // 建立 Leaflet marker
+          const marker = L.circleMarker([location.lat, location.lng], {
+            radius: minsu.pinStatus === 'red-star' ? 10 : 7,
+            fillColor: PIN_COLORS[minsu.pinStatus],
+            color: '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9,
+          })
+            .bindPopup(
+              `<div style="font-family:'Noto Sans TC',sans-serif;padding:4px;min-width:180px">
                 <div style="font-weight:700;font-size:14px;margin-bottom:4px">${minsu.name}</div>
                 <div style="font-size:12px;color:#666;margin-bottom:2px">${PIN_STATUS_CONFIG[minsu.pinStatus].label}</div>
                 <div style="font-size:12px;color:#666">AI 評分：${minsu.aiScore}/50</div>
                 <div style="font-size:12px;color:#1e3a5f;font-weight:600;margin-top:4px">${minsu.phone}</div>
-              </div>
-            `,
-          });
+              </div>`
+            )
+            .addTo(mapRef.current);
 
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
+          marker.on('click', () => {
             setSelectedMinsu(minsu);
           });
+
+          markersRef.current.set(minsu.id, marker);
         }
-      });
-    });
+      }
+    };
+
+    loadMarkers();
+  }, [filtered]);
+
+  const handleMapReady = (map: L.Map) => {
+    mapRef.current = map;
   };
 
   // 點擊民宿清單時縮放地圖並定位
@@ -96,10 +97,9 @@ export default function StaffMap() {
     setSelectedMinsu(minsu);
     
     // 如果 marker 已經載入，則縮放地圖並定位
-    if (mapRef.current && markersRef.current.has(minsu.id)) {
-      const { location } = markersRef.current.get(minsu.id)!;
-      mapRef.current.setCenter(location);
-      mapRef.current.setZoom(16);
+    if (mapRef.current && markerLocationsRef.current.has(minsu.id)) {
+      const location = markerLocationsRef.current.get(minsu.id)!;
+      mapRef.current.setView([location.lat, location.lng], 16);
     }
   };
 
@@ -241,6 +241,13 @@ export default function StaffMap() {
             onMapReady={handleMapReady}
             initialCenter={{ lat: 24.7021, lng: 121.7377 }}
             initialZoom={11}
+            markers={filtered.map(minsu => ({
+              id: minsu.id,
+              lat: markerLocationsRef.current.get(minsu.id)?.lat || 24.7021,
+              lng: markerLocationsRef.current.get(minsu.id)?.lng || 121.7377,
+              title: minsu.name,
+              description: `${minsu.area} · ${minsu.phone}`,
+            }))}
           />
           {/* 統計覆蓋層 */}
           <div className="absolute top-20 left-4 bg-white rounded-xl shadow-md p-3 text-xs">
