@@ -128,11 +128,12 @@ export default function StaffMap() {
 
       // 自定義標記圖標
       const icon = L.divIcon({
-        html: `<div style="background-color: ${pinColor.bg}; color: ${pinColor.color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-center; font-size: 16px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${pinColor.icon}</div>`,
-        iconSize: [32, 32],
+        html: `<div style="background-color: ${pinColor.bg}; color: ${pinColor.color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1;">${pinColor.icon}</div>`,
+        iconSize: [36, 36],
         className: 'custom-marker',
       });
       marker.setIcon(icon);
+
 
       marker.on('click', () => {
         setSelectedMinsu(minsuData[minsu.id]);
