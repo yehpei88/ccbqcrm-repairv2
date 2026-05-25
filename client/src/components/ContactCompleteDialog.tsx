@@ -93,20 +93,52 @@ const FEEDBACK_STATES: Record<CallResult, {
   },
 };
 
-// 快選標籤配置 - 只有需要彈出執行動作的標籤才配置
-const QUICK_TAGS_WITH_ACTION: Record<string, {
-  action: 'search' | 'date' | 'text';
+// 快選標籤配置 - 包含對應動作
+const QUICK_TAGS_CONFIG: Record<string, {
+  label: string;
+  description: string;
+  action: 'search' | 'notify' | 'mark' | 'date' | 'text' | 'none';
   actionLabel?: string;
 }> = {
+  '詢問回饋': {
+    label: '詢問回饋',
+    description: '客戶詢問其他民宿相關資訊',
+    action: 'search',
+    actionLabel: '搜尋欄輸入填寫其他民宿名稱',
+  },
+  '需老闆回覆': {
+    label: '需老闆回覆',
+    description: '需要老闆親自回覆或處理',
+    action: 'notify',
+    actionLabel: '標記為需老闆回覆，通知老闆',
+  },
+  '態度積極': {
+    label: '態度積極',
+    description: '客戶表現出積極的合作意願',
+    action: 'mark',
+    actionLabel: '自動標記為高潛力客戶',
+  },
+  '態度強烈拒絕': {
+    label: '態度強烈拒絕',
+    description: '客戶明確拒絕合作',
+    action: 'mark',
+    actionLabel: '自動標記為已拒絕',
+  },
   '管多間民宿': {
+    label: '管多間民宿',
+    description: '同一人管理多間民宿',
     action: 'search',
     actionLabel: '搜尋欄輸入填寫其他民宿名稱',
   },
   '約定回訪日期': {
+    label: '約定回訪日期',
+    description: '與客戶約定回訪時間',
     action: 'date',
     actionLabel: '設定回訪日期，系統自動提醒',
   },
   '其他': {
+    label: '其他',
+    description: '其他特殊情況或備註',
     action: 'text',
     actionLabel: '自由文字輸入',
   },
@@ -125,7 +157,6 @@ export function ContactCompleteDialog({
   const [note, setNote] = useState('');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [tagDetails, setTagDetails] = useState<Record<string, any>>({});
-  const [expandedTag, setExpandedTag] = useState<string | null>(null);
 
   const handleSelectResult = (result: CallResult) => {
     setSelectedResult(result);
@@ -151,13 +182,8 @@ export function ContactCompleteDialog({
       const newDetails = { ...tagDetails };
       delete newDetails[tag];
       setTagDetails(newDetails);
-      setExpandedTag(null);
     } else {
       newTags.add(tag);
-      // 如果這個標籤需要執行動作，自動展開
-      if (QUICK_TAGS_WITH_ACTION[tag]) {
-        setExpandedTag(tag);
-      }
     }
     setSelectedTags(newTags);
   };
@@ -187,7 +213,6 @@ export function ContactCompleteDialog({
       setNote('');
       setSelectedTags(new Set());
       setTagDetails({});
-      setExpandedTag(null);
       onOpenChange(false);
     }
   };
@@ -218,7 +243,6 @@ export function ContactCompleteDialog({
       setNote('');
       setSelectedTags(new Set());
       setTagDetails({});
-      setExpandedTag(null);
     }
     onOpenChange(newOpen);
   };
@@ -352,70 +376,91 @@ export function ContactCompleteDialog({
                   <label className="text-sm font-medium text-slate-700 block">快速標籤（可複選）</label>
                   <div className="space-y-2">
                     {availableTags.map((tagKey) => {
-                      const isSelected = selectedTags.has(tagKey);
-                      const hasAction = QUICK_TAGS_WITH_ACTION[tagKey];
-                      const isExpanded = expandedTag === tagKey && hasAction;
-
+                      const tagConfig = QUICK_TAGS_CONFIG[tagKey];
                       return (
                         <div key={tagKey} className="space-y-2">
                           <button
                             onClick={() => handleTagToggle(tagKey)}
                             className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
-                              isSelected
+                              selectedTags.has(tagKey)
                                 ? 'bg-blue-50 border-blue-300'
                                 : 'bg-white border-slate-200 hover:border-slate-300'
                             }`}
                           >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => {}}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm font-medium">{tagKey}</span>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className={`font-medium text-sm ${selectedTags.has(tagKey) ? 'text-blue-700' : 'text-slate-700'}`}>
+                                  {tagConfig.label}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-1">
+                                  {tagConfig.description}
+                                </div>
+                              </div>
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                selectedTags.has(tagKey)
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-slate-300'
+                              }`}>
+                                {selectedTags.has(tagKey) && (
+                                  <span className="text-white text-xs">✓</span>
+                                )}
+                              </div>
                             </div>
                           </button>
 
-                          {/* 執行動作 - 只有三個標籤會顯示 */}
-                          {isExpanded && (
-                            <Card className="ml-4 p-3 bg-slate-50 border-slate-200">
-                              <div className="text-xs font-medium text-slate-600 mb-2">
-                                {hasAction.actionLabel}
-                              </div>
-                              {hasAction.action === 'search' && (
-                                <div className="flex gap-2">
-                                  <Search className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1" />
+                          {/* 標籤對應的互動元素 */}
+                          {selectedTags.has(tagKey) && (
+                            <div className="ml-3 p-3 bg-slate-50 rounded border border-slate-200 space-y-2">
+                              {tagConfig.action === 'search' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
                                   <input
                                     type="text"
                                     placeholder="輸入民宿名稱..."
                                     value={tagDetails[tagKey] || ''}
                                     onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
                                   />
                                 </div>
                               )}
-                              {hasAction.action === 'date' && (
-                                <div className="flex gap-2">
-                                  <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1" />
+
+                              {tagConfig.action === 'date' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
                                   <input
                                     type="date"
                                     value={tagDetails[tagKey] || ''}
                                     onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
                                   />
                                 </div>
                               )}
-                              {hasAction.action === 'text' && (
-                                <textarea
-                                  placeholder="輸入其他備註..."
-                                  value={tagDetails[tagKey] || ''}
-                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                  className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
-                                  rows={2}
-                                />
+
+                              {tagConfig.action === 'text' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
+                                  <textarea
+                                    placeholder="輸入其他備註..."
+                                    value={tagDetails[tagKey] || ''}
+                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                    rows={2}
+                                  />
+                                </div>
                               )}
-                            </Card>
+
+                              {(tagConfig.action === 'notify' || tagConfig.action === 'mark') && (
+                                <div className="text-xs text-slate-600 p-2 bg-white rounded border border-slate-200">
+                                  ✓ {tagConfig.actionLabel}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       );
@@ -424,7 +469,7 @@ export function ContactCompleteDialog({
                 </div>
               )}
 
-              {/* 自由備注 */}
+              {/* 自由文字備注 - 只顯示一個 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 block">備注（可選）</label>
                 <Textarea
@@ -444,13 +489,28 @@ export function ContactCompleteDialog({
                 上一步
               </Button>
             )}
-            <Button
-              onClick={handleSave}
-              disabled={!selectedResult}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {step === 'note' ? '完成' : '下一步'}
-            </Button>
+            {step === 'note' ? (
+              <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                完成
+              </Button>
+            ) : (
+              <Button onClick={() => {
+                if (step === 'lineId' && !lineId.trim()) {
+                  alert('請輸入 LINE ID');
+                  return;
+                }
+                const state = FEEDBACK_STATES[selectedResult!];
+                if (step === 'lineId') {
+                  setStep('note');
+                } else if (step === 'followUp') {
+                  setStep('note');
+                } else if (step === 'callResult') {
+                  handleSelectResult(selectedResult!);
+                }
+              }}>
+                下一步
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
