@@ -1,3 +1,4 @@
+// CC 代客烤肉 CRM 系統 — 顧客開發人員地圖作業頁面
 // 完全按照 GitHub v4 版本設計
 
 import { useState, useEffect, useRef } from 'react';
@@ -48,85 +49,126 @@ export default function StaffMap() {
     }
   }, [staffId, setLocation]);
 
-  // 計算 AI 推薦優先撥打的民宿（紅星 + 未開發）
-  const aiRecommended = Object.values(minsuData)
-    .filter(m => m.pinStatus === 'red-star' && !m.callResult && assignedAreas.includes(m.area))
+  // 過濾該顧客開發人員分配區域的民宿
+  const assignedMinsu = Object.values(minsuData).filter(m => assignedAreas.includes(m.area));
+
+  // 應用篩選
+  const filteredMinsu = assignedMinsu
+    .filter(m => filterStatus === 'all' || m.pinStatus === filterStatus)
+    .filter(m => filterArea === 'all' || m.area === filterArea);
+
+  // AI 推薦優先撥打（紅星民宿，按 AI 評分排序，最多 3 家）
+  const aiRecommended = assignedMinsu
+    .filter(m => m.pinStatus === 'red-star')
     .sort((a, b) => b.aiScore - a.aiScore)
     .slice(0, 3);
 
-  // 篩選民宿
-  const filteredMinsu = Object.values(minsuData).filter(minsu => {
-    if (!assignedAreas.includes(minsu.area)) return false;
-    if (filterArea !== 'all' && minsu.area !== filterArea) return false;
-    if (filterStatus === 'developed' && !minsu.callResult) return false;
-    if (filterStatus === 'undeveloped' && minsu.callResult) return false;
-    return true;
+  // 根據通話結果判斷 Pin 狀態
+  const getPinStatusFromCallResult = (callResult: CallResult, minsu: Minsu): PinStatus => {
+    if (minsu.cooperationCount >= 3) return 'gold';
+    if (minsu.cooperationCount > 0) return 'purple';
+    if (callResult === 'agreed') return 'green';
+    if (minsu.pinStatus === 'red-star') return 'red-star';
+    return 'red';
+  };
+
+  // 計算 PIN 狀態計數
+  const pinCounts: Record<PinStatus, number> = {
+    'red-star': 0,
+    'red': 0,
+    'green': 0,
+    'purple': 0,
+    'gold': 0,
+  };
+  assignedMinsu.forEach(m => {
+    pinCounts[m.pinStatus as PinStatus]++;
   });
 
-  const assignedMinsu = Object.values(minsuData).filter(m => assignedAreas.includes(m.area));
+  // 獲取唯一的地區列表
+  const getUniqueAreas = () => {
+    return [...new Set(assignedMinsu.map(m => m.area))].sort();
+  };
 
-  // 初始化地圖
+  // 初始化 Leaflet 地圖
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const L = (window as any).L;
     if (!L) return;
 
-    const map = L.map(mapRef.current).setView([24.7, 121.7], 9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map);
-
+    const map = L.map(mapRef.current).setView([24.8, 121.0], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+    };
   }, []);
 
   // 更新地圖標記
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
 
+    // 清除舊標記
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    filteredMinsu.forEach((minsu) => {
+    // 添加新標記
+    filteredMinsu.forEach(minsu => {
       const L = (window as any).L;
       const pinColor = PIN_COLORS[minsu.pinStatus as PinStatus];
 
+      const marker = L.marker([minsu.latitude, minsu.longitude], {
+        title: minsu.name,
+      })
+        .bindPopup(`<div class="text-sm font-bold">${minsu.name}</div>`)
+        .addTo(map);
+
+      // 自定義標記圖標 - 與老闆地圖相同的設計
+      const bgColor = pinColor.bg;
+      const borderColor = pinColor.bg === '#ef4444' ? '#991b1b' : 
+                         pinColor.bg === '#f87171' ? '#dc2626' : 
+                         pinColor.bg === '#22c55e' ? '#15803d' : 
+                         pinColor.bg === '#a855f7' ? '#7e22ce' : '#a16207';
+      
       const icon = L.divIcon({
         html: `
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, ${pinColor.bg} 0%, ${pinColor.bg}dd 100%);
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.3);
-          font-size: 16px;
-          cursor: pointer;
-          transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
-          position: relative;
-        ">
           <div style="
-            position: absolute;
-            width: 100%;
-            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, ${bgColor} 0%, ${borderColor} 100%);
+            border: 2px solid white;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent);
-            pointer-events: none;
-          "></div>
-          <span style="position: relative; z-index: 1; line-height: 1;">${pinColor.icon}</span>
-        </div>
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.3);
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent);
+              pointer-events: none;
+            "></div>
+            <span style="position: relative; z-index: 1; line-height: 1;">${pinColor.icon}</span>
+          </div>
         `,
         iconSize: [32, 32],
         iconAnchor: [16, 16],
         popupAnchor: [0, -16],
         className: 'custom-marker',
       });
-      
-      const marker = L.marker([minsu.latitude, minsu.longitude], { icon }).addTo(mapInstanceRef.current);
+      marker.setIcon(icon);
+
+
       marker.on('click', () => {
         setSelectedMinsu(minsuData[minsu.id]);
       });
@@ -207,21 +249,35 @@ export default function StaffMap() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部顯示</SelectItem>
-                  <SelectItem value="developed">已開發</SelectItem>
-                  <SelectItem value="undeveloped">未開發</SelectItem>
+                  {Object.entries(PIN_COLORS).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={filterArea} onValueChange={setFilterArea}>
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="全部區域" />
+                  <SelectValue placeholder="全部地區" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部區域</SelectItem>
-                  {assignedAreas.map((area: string) => (
+                  <SelectItem value="all">全部地區</SelectItem>
+                  {getUniqueAreas().map((area) => (
                     <SelectItem key={area} value={area}>{area}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* PIN 狀態說明 */}
+          <div className="p-3 border-b border-slate-200">
+            <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">PIN 狀態說明</div>
+            <div className="space-y-1">
+              {Object.entries(PIN_COLORS).map(([key, config]) => (
+                <div key={key} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-700">{config.label}</span>
+                  <span className="font-semibold text-slate-600">{pinCounts[key as PinStatus] || 0} 家</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -275,9 +331,15 @@ export default function StaffMap() {
         <div className="fixed top-20 right-4 w-96 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200 z-50">
           {/* 卡片頭部 */}
           <div className="p-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-xl">
-            <div className="flex items-start justify-between mb-2">
+            <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="font-bold text-lg text-slate-900">{selectedMinsu.name}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="text-xs bg-red-100 text-red-700 font-semibold">
+                    {PIN_COLORS[selectedMinsu.pinStatus as PinStatus]?.label}
+                  </Badge>
+                  <span className="text-xs text-slate-500">AI {selectedMinsu.aiScore}/50</span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedMinsu(null)}
@@ -286,12 +348,6 @@ export default function StaffMap() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge className="text-xs bg-yellow-100 text-yellow-700 font-semibold">
-                {selectedMinsu.pinStatus === 'gold' ? '金標' : selectedMinsu.pinStatus === 'purple' ? '紫標' : selectedMinsu.pinStatus === 'green' ? '綠標' : selectedMinsu.pinStatus === 'red-star' ? '紅星' : '紅標'}
-              </Badge>
-              <span className="text-xs text-slate-600">AI 評分：<span className="font-semibold">{selectedMinsu.aiScore}/50</span></span>
-            </div>
           </div>
 
           {/* 卡片內容 */}
@@ -299,49 +355,31 @@ export default function StaffMap() {
             {selectedMinsu.callResult ? (
               // 已開發民宿 - 完整詳情
               <>
-                {/* VIP 客戶標籤 */}
+                {/* VIP 標籤 */}
                 {selectedMinsu.pinStatus === 'gold' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div className="flex items-start gap-2">
-                      <div className="text-lg">👑</div>
-                      <div className="flex-1">
-                        <div className="font-bold text-yellow-800 text-sm">VIP 客戶回訪提醒</div>
-                        <div className="text-xs text-yellow-700 mt-1">已合作 4 次，建議回訪日：2026-05-28</div>
-                      </div>
-                    </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <div className="text-sm font-bold text-yellow-800">👑 VIP 客戶</div>
+                    <div className="text-xs text-yellow-700 mt-1">已合作 {selectedMinsu.cooperationCount} 次</div>
                   </div>
                 )}
 
                 {/* 基本資料 */}
-                <div>
-                  <div className="text-slate-600 font-bold text-sm mb-3 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    基本資料
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-3">
+                  <div className="text-slate-600 font-bold text-sm">基本資料</div>
+                  <div className="space-y-2 text-xs">
                     <div>
-                      <div className="text-slate-500 font-medium">地址</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.address}</p>
+                      <span className="text-slate-500 text-xs font-medium">地址</span>
+                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
                     </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">電話</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.phone}</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">地區</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.area}</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">類型</div>
-                      <p className="font-medium text-slate-900 mt-1">農家樂民宿</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">請聯</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.hasRainShelter ? '有雨棚' : '無雨棚'}</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">負責人</div>
-                      <p className="font-medium text-slate-900 mt-1">林小美</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">電話</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">地區</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -349,61 +387,60 @@ export default function StaffMap() {
                 {/* 開發狀態 */}
                 <div className="border-t border-slate-200 pt-3">
                   <div className="text-slate-600 font-bold text-sm mb-3">開發狀態</div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <div className="text-slate-500 font-medium">通話結果</div>
-                      <p className="font-medium text-slate-900 mt-1">通話結果黑</p>
+                      <span className="text-slate-500 font-medium">通話結果</span>
+                      <p className="font-medium text-slate-900 mt-1">✅ 已聯繫</p>
                     </div>
                     <div>
-                      <div className="text-slate-500 font-medium">AI 意向</div>
-                      <p className="font-medium text-slate-900 mt-1">🔥</p>
+                      <span className="text-slate-500 font-medium">AI 意向</span>
+                      <p className="font-medium text-slate-900 mt-1">—</p>
                     </div>
                     <div>
-                      <div className="text-slate-500 font-medium">LINE 狀態</div>
+                      <span className="text-slate-500 font-medium">LINE 狀態</span>
                       <p className="font-medium text-slate-900 mt-1">
-                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        已加入
+                        {selectedMinsu.lineAdded ? '✅ 已加入' : '❌ 未加入'}
                       </p>
                     </div>
                     <div>
-                      <div className="text-slate-500 font-medium">合作次數</div>
-                      <p className="font-medium text-slate-900 mt-1">4 次</p>
+                      <span className="text-slate-500 font-medium">合作次數</span>
+                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.cooperationCount} 次</p>
                     </div>
                   </div>
                 </div>
 
                 {/* AI 潛力評分 */}
                 <div className="border-t border-slate-200 pt-3">
-                  <div className="text-slate-600 font-bold text-sm mb-3">AI 潛力評分</div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600 text-xs">總分</span>
-                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full"
-                          style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
-                        />
-                      </div>
-                      <span className="font-bold text-slate-900 text-xs">{selectedMinsu.aiScore}/50</span>
-                    </div>
-                    <div className="text-xs text-slate-600 flex items-center gap-1">
-                      <span>✅</span>
-                      <span>達到紅星門檻（≥ 20 分），建議優先開發</span>
-                    </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-slate-600 font-bold text-sm">AI 潛力評分</span>
+                    <span className="text-slate-900 font-bold text-sm">{selectedMinsu.aiScore}/50</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all"
+                      style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-slate-600 mt-2">
+                    {selectedMinsu.aiScore >= 20
+                      ? '✅ 達到紅星門檻（≥ 20 分），建議優先開發'
+                      : '⚠️ 未達紅星門檻（< 20 分），列為紅標備選'}
                   </div>
                 </div>
 
                 {/* 歷史備注 */}
-                <div className="border-t border-slate-200 pt-3">
-                  <div className="text-slate-600 font-bold text-sm mb-2">歷史備注</div>
-                  <div className="space-y-2 text-xs">
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                      <div className="text-slate-500">• VIP 客戶</div>
-                      <div className="text-slate-500">• 農家樂超大</div>
-                      <div className="text-slate-500">• 每次合作都 50 人以上</div>
-                      <div className="text-slate-500">• 老闆很配合</div>
-                      <div className="text-slate-500">• 有重點回訪</div>
-                    </div>
+                {selectedMinsu.note && (
+                  <div className="border-t border-slate-200 pt-3">
+                    <span className="text-slate-600 font-bold text-sm">歷史備注</span>
+                    <p className="text-slate-700 bg-slate-50 p-2 rounded mt-2 text-xs">{selectedMinsu.note}</p>
+                  </div>
+                )}
+
+                {/* 已開發提示 */}
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="text-xs text-slate-600 bg-green-50 p-3 rounded-lg text-center border border-green-200">
+                    <p className="font-bold text-green-700">✅ 已開發</p>
+                    <p className="text-green-600 mt-1">此民宿已有聯繫記錄</p>
                   </div>
                 </div>
               </>
@@ -411,39 +448,51 @@ export default function StaffMap() {
               // 未開發民宿 - 簡化詳情
               <>
                 {/* 基本資料 */}
-                <div>
-                  <div className="text-slate-600 font-bold text-sm mb-3">基本資料</div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-3">
+                  <div className="text-slate-600 font-bold text-sm">基本資料</div>
+                  <div className="space-y-2 text-xs">
                     <div>
-                      <div className="text-slate-500 font-medium">地址</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.address}</p>
+                      <span className="text-slate-500 text-xs font-medium">地址</span>
+                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
                     </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">電話</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.phone}</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">地區</div>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.area}</p>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 font-medium">類型</div>
-                      <p className="font-medium text-slate-900 mt-1">民宿</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">電話</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">地區</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* AI 評分 */}
+                {/* 詳細信息 */}
                 <div className="border-t border-slate-200 pt-3">
-                  <div className="text-slate-600 font-bold text-sm mb-2">AI 評分</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full"
-                        style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
-                      />
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-500 font-medium">類型</span>
+                      <p className="font-medium text-slate-900 mt-1">民宿</p>
                     </div>
-                    <span className="font-bold text-slate-900 text-xs">{selectedMinsu.aiScore}/50</span>
+                    <div>
+                      <span className="text-slate-500 font-medium">雨棚</span>
+                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.hasRainShelter ? '有' : '無'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI 推薦評分 */}
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-600 font-bold text-sm">AI 評分</span>
+                    <span className="text-slate-900 font-bold text-sm">{selectedMinsu.aiScore}/50</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all"
+                      style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
+                    />
                   </div>
                 </div>
 
@@ -459,6 +508,8 @@ export default function StaffMap() {
                 </div>
               </>
             )}
+
+
           </div>
         </div>
       )}
@@ -487,36 +538,23 @@ export default function StaffMap() {
                   id: `call-${Date.now()}`,
                   timestamp: new Date().toISOString(),
                   summary: data.note || '',
-                  intentLabel: 'seen',
+                  intentLabel: 'inquiring',
                   source: 'manual',
                 },
               ],
             };
 
-            setMinsuData(prev => ({
-              ...prev,
-              [selectedMinsu.id]: updatedMinsu,
-            }));
-
+            // 更新數據存儲
+            setMinsuData(prev => ({ ...prev, [selectedMinsu.id]: updatedMinsu }));
             setSelectedMinsu(updatedMinsu);
-            setShowContactDialog(false);
-            toast.success(`已更新「${selectedMinsu.name}」的聯繫記錄`);
+
+            toast.success(`已登錄「${selectedMinsu.name}」的通話結果`);
+            if (data.callResult === 'agreed') {
+              toast.success('🎉 已觸發自動化流程：LINE 邀請 + 菜單已自動發送！', { duration: 4000 });
+            }
           }
         }}
       />
     </Layout>
   );
-}
-
-// 根據通話結果決定 Pin 狀態
-function getPinStatusFromCallResult(callResult: CallResult, minsu: Minsu): PinStatus {
-  if (callResult === 'agreed') {
-    return 'green'; // 答應加賴 → 綠標
-  } else if (callResult === 'rejected') {
-    return 'red'; // 拒絕 → 紅標
-  } else if (callResult === 'hesitating') {
-    return 'red'; // 猶豫中 → 紅標
-  } else {
-    return minsu.pinStatus; // 其他情況保持原狀
-  }
 }
