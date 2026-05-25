@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { MOCK_STAFF, AVAILABLE_AREAS, AREA_ASSIGNMENTS } from '@/lib/data';
+import { MOCK_STAFF, AVAILABLE_AREAS, AREA_ASSIGNMENTS, MOCK_MINSU_DATA } from '@/lib/data';
 import type { Staff, AreaAssignment } from '@/lib/data';
 import { Users, MapPin } from 'lucide-react';
 
@@ -68,7 +68,16 @@ export default function AreaAssignment() {
     setEditingStaffId(null);
   };
 
-  const totalAssignedAreas = assignments.reduce((sum, a) => sum + a.areas.length, 0);
+  // 計算已分配的民宿數量
+  const assignedMinsuIds = new Set<string>();
+  assignments.forEach(assignment => {
+    assignment.areas.forEach(area => {
+      // 找出該區域的所有民宿
+      const minsuInArea = MOCK_MINSU_DATA.filter(m => m.area === area);
+      minsuInArea.forEach(m => assignedMinsuIds.add(m.id));
+    });
+  });
+  const totalAssignedMinsu = assignedMinsuIds.size;
   const unassignedStaff = staffList.filter(s => !assignments.find(a => a.staffId === s.id)).length;
 
   return (
@@ -159,8 +168,8 @@ export default function AreaAssignment() {
               <p className="text-2xl font-bold text-blue-600">{staffList.length}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">已分配區域</p>
-              <p className="text-2xl font-bold text-green-600">{totalAssignedAreas}/{AVAILABLE_AREAS.length}</p>
+              <p className="text-xs text-muted-foreground mb-1">已分配民宿</p>
+              <p className="text-2xl font-bold text-green-600">{totalAssignedMinsu}/{MOCK_MINSU_DATA.length}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">未分配顧客開發人員</p>
