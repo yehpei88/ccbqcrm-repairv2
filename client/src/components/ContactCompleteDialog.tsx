@@ -56,8 +56,8 @@ const FEEDBACK_STATES: Record<CallResult, {
     color: 'text-red-600',
     bgColor: 'bg-red-50 border-red-200',
     pinChange: '維持紅色，大幅降評',
-    systemAction: '記錄拒絕；設定 30 天不追蹤；快速篩選；降度評分拒絕',
-    followUpDays: 30,
+    systemAction: '設定 90 天冷卻期；移出主列表；標記為已拒絕',
+    followUpDays: 90,
     availableTags: [], // 拒絕加賴不顯示快選標籤
   },
   'invalid': {
