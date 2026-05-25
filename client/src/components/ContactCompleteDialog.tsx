@@ -14,7 +14,7 @@ interface ContactCompleteDialogProps {
   open: boolean;
   minsu: Minsu | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number }) => void;
+  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number; lineId?: string }) => void;
 }
 
 // 根據文件 6.4 六主回饋狀態定義後續狀態
@@ -92,17 +92,21 @@ export function ContactCompleteDialog({
   onOpenChange,
   onSave,
 }: ContactCompleteDialogProps) {
-  const [step, setStep] = useState<'callResult' | 'followUp' | 'note'>('callResult');
+  const [step, setStep] = useState<'callResult' | 'followUp' | 'lineId' | 'note'>('callResult');
   const [selectedResult, setSelectedResult] = useState<CallResult | null>(null);
   const [followUpDays, setFollowUpDays] = useState<number>(7);
+  const [lineId, setLineId] = useState('');
   const [note, setNote] = useState('');
 
   const handleSelectResult = (result: CallResult) => {
     setSelectedResult(result);
     const state = FEEDBACK_STATES[result];
     
-    // 如果有後續追蹤天數輸入，進入 followUp 步驟
-    if (state.showFollowUpDaysInput) {
+    // 如果是「答應加賴」，進入 LINE ID 輸入步驟
+    if (result === 'agreed') {
+      setStep('lineId');
+    } else if (state.showFollowUpDaysInput) {
+      // 如果有後續追蹤天數輸入，進入 followUp 步驟
       setFollowUpDays(state.followUpDays || 7);
       setStep('followUp');
     } else {
@@ -117,11 +121,13 @@ export function ContactCompleteDialog({
         callResult: selectedResult,
         note,
         followUpDays,
+        lineId: selectedResult === 'agreed' ? lineId : undefined,
       });
       // 重置狀態
       setStep('callResult');
       setSelectedResult(null);
       setFollowUpDays(7);
+      setLineId('');
       setNote('');
       onOpenChange(false);
     }
@@ -130,8 +136,16 @@ export function ContactCompleteDialog({
   const handleBack = () => {
     if (step === 'note') {
       const state = FEEDBACK_STATES[selectedResult!];
-      setStep(state.showFollowUpDaysInput ? 'followUp' : 'callResult');
+      if (selectedResult === 'agreed') {
+        setStep('lineId');
+      } else if (state.showFollowUpDaysInput) {
+        setStep('followUp');
+      } else {
+        setStep('callResult');
+      }
     } else if (step === 'followUp') {
+      setStep('callResult');
+    } else if (step === 'lineId') {
       setStep('callResult');
     }
   };
@@ -141,6 +155,7 @@ export function ContactCompleteDialog({
       setStep('callResult');
       setSelectedResult(null);
       setFollowUpDays(7);
+      setLineId('');
       setNote('');
     }
     onOpenChange(newOpen);
@@ -183,10 +198,29 @@ export function ContactCompleteDialog({
             </div>
           )}
 
-          {/* Step 2: 後續追蹤天數設定（如果需要） */}
+          {/* Step 2: LINE ID 輸入（如果是答應加賴） */}
+          {step === 'lineId' && selectedResult === 'agreed' && (
+            <div className="space-y-3">
+              <div className="text-sm font-semibold text-slate-700">Step 2: 輸入對方 LINE ID</div>
+              <Card className="p-4 bg-green-50 border-green-200">
+                <div className="text-sm text-green-700 mb-4 font-medium">
+                  對方已答應加 LINE，請輸入對方的 LINE ID 以便後續自動發送邀請
+                </div>
+                <input
+                  type="text"
+                  placeholder="例如：@1234567890 或 user_line_id"
+                  value={lineId}
+                  onChange={(e) => setLineId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded text-sm"
+                />
+              </Card>
+            </div>
+          )}
+
+          {/* Step 3: 後續追蹤天數設定（如果需要） */}
           {step === 'followUp' && selectedResult && (
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-slate-700">Step 2: 設定後續追蹤天數</div>
+              <div className="text-sm font-semibold text-slate-700">Step 3: 設定後續追蹤天數</div>
               <Card className="p-4 bg-slate-50 border-slate-200">
                 <div className="text-sm text-slate-600 mb-4 font-medium">
                   {FEEDBACK_STATES[selectedResult].systemAction}
@@ -207,10 +241,10 @@ export function ContactCompleteDialog({
             </div>
           )}
 
-          {/* Step 3: 備注和快速標籤 */}
+          {/* Step 4: 備注和快速標籤 */}
           {step === 'note' && selectedResult && (
             <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700">Step 3: 記錄備注</div>
+              <div className="text-sm font-semibold text-slate-700">Step 4: 記錄備注</div>
 
               {/* 後續狀態摘要 */}
               <Card className={`p-4 border-2 ${FEEDBACK_STATES[selectedResult].bgColor}`}>
@@ -285,13 +319,14 @@ export function ContactCompleteDialog({
               <Button
                 onClick={() => {
                   if (step === 'callResult' && selectedResult) {
-                    const state = FEEDBACK_STATES[selectedResult];
-                    setStep(state.showFollowUpDaysInput ? 'followUp' : 'note');
+                    handleSelectResult(selectedResult);
+                  } else if (step === 'lineId' && selectedResult === 'agreed') {
+                    setStep('note');
                   } else if (step === 'followUp') {
                     setStep('note');
                   }
                 }}
-                disabled={!selectedResult}
+                disabled={!selectedResult || (step === 'lineId' && !lineId.trim())}
               >
                 下一步
               </Button>
