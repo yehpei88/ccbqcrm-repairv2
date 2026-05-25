@@ -23,6 +23,7 @@ const pinCounts = Object.entries(PIN_STATUS_CONFIG).map(([key, cfg]) => ({
 const vipCount = MOCK_MINSU_DATA.filter(m => m.pinStatus === 'gold').length;
 const lineAdded = MOCK_MINSU_DATA.filter(m => m.lineAdded).length;
 const hotLeads = MOCK_MINSU_DATA.filter(m => m.intentLabel === 'hot').length;
+const missedCalls = MOCK_MINSU_DATA.filter(m => m.missedCallDate).length;
 
 // AI 導入前後對比
 const CONVERSION_COMPARE = [
@@ -65,7 +66,7 @@ export default function Dashboard() {
 
       <div className="p-6 space-y-6">
         {/* 統計卡片 */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <StatCard
             icon={<Star size={20} className="text-yellow-600" />}
             label="VIP 金標客戶"
@@ -88,6 +89,14 @@ export default function Dashboard() {
             sub="需立即跟進"
             color="bg-red-50"
             trend="今日新增 2 筆"
+          />
+          <StatCard
+            icon={<Bell size={20} className="text-gray-600" />}
+            label="未接電話待重撥"
+            value={`${missedCalls} 筆`}
+            sub="需要重新聯繫"
+            color="bg-gray-50"
+            trend="今日 3 筆"
           />
         </div>
 
