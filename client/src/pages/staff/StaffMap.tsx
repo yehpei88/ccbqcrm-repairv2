@@ -126,10 +126,44 @@ export default function StaffMap() {
         .bindPopup(`<div class="text-sm font-bold">${minsu.name}</div>`)
         .addTo(map);
 
-      // 自定義標記圖標
+      // 自定義標記圖標 - 與老闆地圖相同的設計
+      const bgColor = pinColor.bg;
+      const borderColor = pinColor.bg === '#ef4444' ? '#991b1b' : 
+                         pinColor.bg === '#f87171' ? '#dc2626' : 
+                         pinColor.bg === '#22c55e' ? '#15803d' : 
+                         pinColor.bg === '#a855f7' ? '#7e22ce' : '#a16207';
+      
       const icon = L.divIcon({
-        html: `<div style="background-color: ${pinColor.bg}; color: ${pinColor.color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1;">${pinColor.icon}</div>`,
-        iconSize: [36, 36],
+        html: `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, ${bgColor} 0%, ${borderColor} 100%);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.3);
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent);
+              pointer-events: none;
+            "></div>
+            <span style="position: relative; z-index: 1; line-height: 1;">${pinColor.icon}</span>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
         className: 'custom-marker',
       });
       marker.setIcon(icon);
