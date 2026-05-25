@@ -300,10 +300,14 @@ export default function StaffMap() {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ background: pinColor.bg }}
-                      />
+                      {minsu.pinStatus === 'red-star' ? (
+                        <div className="text-lg flex-shrink-0">⭐</div>
+                      ) : (
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ background: pinColor.bg }}
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-slate-900 truncate">{minsu.name}</div>
                         <div className="text-xs text-slate-500">{minsu.area} · {minsu.aiScore}分</div>
@@ -348,108 +352,164 @@ export default function StaffMap() {
 
           {/* 卡片內容 */}
           <div className="p-4 space-y-4">
-            {/* 基本資料 */}
-            <div className="space-y-3">
-              <div className="text-slate-600 font-bold text-sm">基本資料</div>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-slate-500 text-xs font-medium">地址</span>
-                  <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-slate-500 text-xs font-medium">電話</span>
-                    <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+            {selectedMinsu.callResult ? (
+              // 已開發民宿 - 完整詳情
+              <>
+                {/* VIP 標籤 */}
+                {selectedMinsu.pinStatus === 'gold' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <div className="text-sm font-bold text-yellow-800">👑 VIP 客戶</div>
+                    <div className="text-xs text-yellow-700 mt-1">已合作 {selectedMinsu.cooperationCount} 次</div>
                   </div>
-                  <div>
-                    <span className="text-slate-500 text-xs font-medium">地區</span>
-                    <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                )}
+
+                {/* 基本資料 */}
+                <div className="space-y-3">
+                  <div className="text-slate-600 font-bold text-sm">基本資料</div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="text-slate-500 text-xs font-medium">地址</span>
+                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">電話</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">地區</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* 詳細信息 */}
-            <div className="border-t border-slate-200 pt-3">
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-slate-500 font-medium">類型</span>
-                  <p className="font-medium text-slate-900 mt-1">民宿</p>
+                {/* 開發狀態 */}
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="text-slate-600 font-bold text-sm mb-3">開發狀態</div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-500 font-medium">通話結果</span>
+                      <p className="font-medium text-slate-900 mt-1">✅ 已聯繫</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">AI 意向</span>
+                      <p className="font-medium text-slate-900 mt-1">—</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">LINE 狀態</span>
+                      <p className="font-medium text-slate-900 mt-1">
+                        {selectedMinsu.lineAdded ? '✅ 已加入' : '❌ 未加入'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">合作次數</span>
+                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.cooperationCount} 次</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-500 font-medium">雨棚</span>
-                  <p className="font-medium text-slate-900 mt-1">{selectedMinsu.hasRainShelter ? '有' : '無'}</p>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium">負責聯絡員</span>
-                  <p className="font-medium text-slate-900 mt-1">待指定</p>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium">通話結果</span>
-                  <p className="font-medium text-slate-900 mt-1">{selectedMinsu.callResult ? '已聯繫' : '未聯繫'}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* 通話狀態 */}
-            <div className="border-t border-slate-200 pt-3">
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-slate-500 font-medium">AI 意向</span>
-                  <p className="font-medium text-slate-900 mt-1">—</p>
+                {/* AI 潛力評分 */}
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-slate-600 font-bold text-sm">AI 潛力評分</span>
+                    <span className="text-slate-900 font-bold text-sm">{selectedMinsu.aiScore}/50</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all"
+                      style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-slate-600 mt-2">
+                    {selectedMinsu.aiScore >= 20
+                      ? '✅ 達到紅星門檻（≥ 20 分），建議優先開發'
+                      : '⚠️ 未達紅星門檻（< 20 分），列為紅標備選'}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-500 font-medium">LINE 狀態</span>
-                  <p className="font-medium text-slate-900 mt-1">
-                    {selectedMinsu.lineAdded ? '✅ 已加入' : '❌ 未加入'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium">合作次數</span>
-                  <p className="font-medium text-slate-900 mt-1">{selectedMinsu.cooperationCount} 次</p>
-                </div>
-              </div>
-            </div>
 
-            {/* AI 推薦評分 */}
-            <div className="border-t border-slate-200 pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-600 font-bold text-sm">總分</span>
-                <span className="text-slate-900 font-bold text-sm">{selectedMinsu.aiScore}/50</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all"
-                  style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
-                />
-              </div>
-            </div>
+                {/* 歷史備注 */}
+                {selectedMinsu.note && (
+                  <div className="border-t border-slate-200 pt-3">
+                    <span className="text-slate-600 font-bold text-sm">歷史備注</span>
+                    <p className="text-slate-700 bg-slate-50 p-2 rounded mt-2 text-xs">{selectedMinsu.note}</p>
+                  </div>
+                )}
 
-            {/* 備注 */}
-            {selectedMinsu.note && (
-              <div className="border-t border-slate-200 pt-3">
-                <span className="text-slate-600 font-bold text-sm">備注</span>
-                <p className="text-slate-700 bg-slate-50 p-2 rounded mt-2 text-xs">{selectedMinsu.note}</p>
-              </div>
+                {/* 已開發提示 */}
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="text-xs text-slate-600 bg-green-50 p-3 rounded-lg text-center border border-green-200">
+                    <p className="font-bold text-green-700">✅ 已開發</p>
+                    <p className="text-green-600 mt-1">此民宿已有聯繫記錄</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              // 未開發民宿 - 簡化詳情
+              <>
+                {/* 基本資料 */}
+                <div className="space-y-3">
+                  <div className="text-slate-600 font-bold text-sm">基本資料</div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="text-slate-500 text-xs font-medium">地址</span>
+                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">電話</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs font-medium">地區</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 詳細信息 */}
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-500 font-medium">類型</span>
+                      <p className="font-medium text-slate-900 mt-1">民宿</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">雨棚</span>
+                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.hasRainShelter ? '有' : '無'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI 推薦評分 */}
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-600 font-bold text-sm">AI 評分</span>
+                    <span className="text-slate-900 font-bold text-sm">{selectedMinsu.aiScore}/50</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all"
+                      style={{ width: `${(selectedMinsu.aiScore / 50) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* 聯繫完成按鈕 */}
+                <div className="border-t border-slate-200 pt-4">
+                  <Button
+                    className="w-full h-10 text-sm gap-2 font-bold bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg"
+                    onClick={() => setShowContactDialog(true)}
+                  >
+                    <Phone className="w-4 h-4" />
+                    聯繫完成
+                  </Button>
+                </div>
+              </>
             )}
 
-            {/* 快速操作 - 根據開發狀態顯示 */}
-            <div className="border-t border-slate-200 pt-4">
-              {selectedMinsu.callResult ? (
-                <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg text-center">
-                  <p className="font-medium">✅ 已開發</p>
-                  <p className="text-slate-500 mt-1">此民宿已有聯繫記錄</p>
-                </div>
-              ) : (
-                <Button
-                  className="w-full h-10 text-sm gap-2 font-bold bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg"
-                  onClick={() => setShowContactDialog(true)}
-                >
-                  <Phone className="w-4 h-4" />
-                  聯繫完成
-                </Button>
-              )}
-            </div>
+
           </div>
         </div>
       )}
