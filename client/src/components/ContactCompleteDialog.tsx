@@ -8,13 +8,13 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { type Minsu, type CallResult } from '@/lib/data';
-import { AlertCircle, CheckCircle, Clock, XCircle, Phone, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, XCircle, Phone, AlertTriangle, Search, Calendar } from 'lucide-react';
 
 interface ContactCompleteDialogProps {
   open: boolean;
   minsu: Minsu | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number; lineId?: string; quickTags?: string[] }) => void;
+  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number; lineId?: string; quickTags?: string[]; tagDetails?: Record<string, any> }) => void;
 }
 
 // 根據文件 6.4 六主回饋狀態定義後續狀態
@@ -86,6 +86,57 @@ const FEEDBACK_STATES: Record<CallResult, {
   },
 };
 
+// 快選標籤配置 - 包含對應動作
+const QUICK_TAGS_CONFIG: Record<string, {
+  label: string;
+  description: string;
+  action: 'search' | 'notify' | 'mark' | 'date' | 'text' | 'none';
+  actionLabel?: string;
+}> = {
+  '詢問回饋': {
+    label: '詢問回饋',
+    description: '客戶詢問其他民宿相關資訊',
+    action: 'search',
+    actionLabel: '搜尋欄輸入填寫其他民宿名稱',
+  },
+  '需老闆回覆': {
+    label: '需老闆回覆',
+    description: '需要老闆親自回覆或處理',
+    action: 'notify',
+    actionLabel: '標記為需老闆回覆，通知老闆',
+  },
+  '態度積極': {
+    label: '態度積極',
+    description: '客戶表現出積極的合作意願',
+    action: 'mark',
+    actionLabel: '自動標記為高潛力客戶',
+  },
+  '態度強烈拒絕': {
+    label: '態度強烈拒絕',
+    description: '客戶明確拒絕合作',
+    action: 'mark',
+    actionLabel: '自動標記為已拒絕',
+  },
+  '管多間民宿': {
+    label: '管多間民宿',
+    description: '同一人管理多間民宿',
+    action: 'search',
+    actionLabel: '搜尋欄輸入填寫其他民宿名稱',
+  },
+  '約定回訪日期': {
+    label: '約定回訪日期',
+    description: '與客戶約定回訪時間',
+    action: 'date',
+    actionLabel: '設定回訪日期，系統自動提醒',
+  },
+  '其他': {
+    label: '其他',
+    description: '其他特殊情況或備註',
+    action: 'text',
+    actionLabel: '自由文字輸入',
+  },
+};
+
 export function ContactCompleteDialog({
   open,
   minsu,
@@ -98,6 +149,7 @@ export function ContactCompleteDialog({
   const [lineId, setLineId] = useState('');
   const [note, setNote] = useState('');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [tagDetails, setTagDetails] = useState<Record<string, any>>({});
 
   const handleSelectResult = (result: CallResult) => {
     setSelectedResult(result);
@@ -116,6 +168,26 @@ export function ContactCompleteDialog({
     }
   };
 
+  const handleTagToggle = (tag: string) => {
+    const newTags = new Set(selectedTags);
+    if (newTags.has(tag)) {
+      newTags.delete(tag);
+      const newDetails = { ...tagDetails };
+      delete newDetails[tag];
+      setTagDetails(newDetails);
+    } else {
+      newTags.add(tag);
+    }
+    setSelectedTags(newTags);
+  };
+
+  const handleTagDetailChange = (tag: string, value: any) => {
+    setTagDetails({
+      ...tagDetails,
+      [tag]: value,
+    });
+  };
+
   const handleSave = () => {
     if (selectedResult) {
       onSave({
@@ -124,6 +196,7 @@ export function ContactCompleteDialog({
         followUpDays,
         lineId: selectedResult === 'agreed' ? lineId : undefined,
         quickTags: selectedResult !== 'rejected' ? Array.from(selectedTags) : undefined,
+        tagDetails: Object.keys(tagDetails).length > 0 ? tagDetails : undefined,
       });
       // 重置狀態
       setStep('callResult');
@@ -132,6 +205,7 @@ export function ContactCompleteDialog({
       setLineId('');
       setNote('');
       setSelectedTags(new Set());
+      setTagDetails({});
       onOpenChange(false);
     }
   };
@@ -161,6 +235,7 @@ export function ContactCompleteDialog({
       setLineId('');
       setNote('');
       setSelectedTags(new Set());
+      setTagDetails({});
     }
     onOpenChange(newOpen);
   };
@@ -287,29 +362,99 @@ export function ContactCompleteDialog({
 
               {/* 快速標籤 - 拒絕加賴時不顯示 */}
               {selectedResult !== 'rejected' && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700 block mb-2">快速標籤（可複選）</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['詢問回饋', '需老闆回覆', '態度積極', '態度強烈拒絕', '管多間民宿', '約定回訪日期', '其他'].map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => {
-                          const newTags = new Set(selectedTags);
-                          if (newTags.has(tag)) {
-                            newTags.delete(tag);
-                          } else {
-                            newTags.add(tag);
-                          }
-                          setSelectedTags(newTags);
-                        }}
-                        className={`px-3 py-1 text-xs border rounded-full transition-colors ${
-                          selectedTags.has(tag)
-                            ? 'bg-blue-100 border-blue-300 text-blue-700'
-                            : 'border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        {tag}
-                      </button>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-700 block">快速標籤（可複選）</label>
+                  <div className="space-y-2">
+                    {Object.entries(QUICK_TAGS_CONFIG).map(([tagKey, tagConfig]) => (
+                      <div key={tagKey} className="space-y-2">
+                        <button
+                          onClick={() => handleTagToggle(tagKey)}
+                          className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
+                            selectedTags.has(tagKey)
+                              ? 'bg-blue-50 border-blue-300'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className={`font-medium text-sm ${selectedTags.has(tagKey) ? 'text-blue-700' : 'text-slate-700'}`}>
+                                {tagConfig.label}
+                              </div>
+                              <div className="text-xs text-slate-500 mt-1">{tagConfig.description}</div>
+                            </div>
+                            <div className={`text-xs font-semibold px-2 py-1 rounded ${
+                              selectedTags.has(tagKey)
+                                ? 'bg-blue-200 text-blue-700'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {selectedTags.has(tagKey) ? '✓' : '○'}
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* 標籤對應的互動欄位 */}
+                        {selectedTags.has(tagKey) && (
+                          <div className="ml-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                            {tagConfig.action === 'search' && (
+                              <div>
+                                <label className="text-xs font-medium text-slate-600 block mb-1">
+                                  <Search className="w-3 h-3 inline mr-1" />
+                                  {tagConfig.actionLabel}
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="輸入民宿名稱（多個用逗號分隔）"
+                                  value={tagDetails[tagKey] || ''}
+                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
+                                />
+                              </div>
+                            )}
+                            {tagConfig.action === 'notify' && (
+                              <div className="text-xs text-slate-600">
+                                <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                  🔔 {tagConfig.actionLabel}
+                                </Badge>
+                              </div>
+                            )}
+                            {tagConfig.action === 'mark' && (
+                              <div className="text-xs text-slate-600">
+                                <Badge className="bg-green-100 text-green-700 text-xs">
+                                  ✓ {tagConfig.actionLabel}
+                                </Badge>
+                              </div>
+                            )}
+                            {tagConfig.action === 'date' && (
+                              <div>
+                                <label className="text-xs font-medium text-slate-600 block mb-1">
+                                  <Calendar className="w-3 h-3 inline mr-1" />
+                                  {tagConfig.actionLabel}
+                                </label>
+                                <input
+                                  type="date"
+                                  value={tagDetails[tagKey] || ''}
+                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
+                                />
+                              </div>
+                            )}
+                            {tagConfig.action === 'text' && (
+                              <div>
+                                <label className="text-xs font-medium text-slate-600 block mb-1">
+                                  {tagConfig.actionLabel}
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="輸入備註內容"
+                                  value={tagDetails[tagKey] || ''}
+                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
