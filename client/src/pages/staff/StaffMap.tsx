@@ -301,7 +301,7 @@ export default function StaffMap() {
                   >
                     <div className="flex items-center gap-2">
                       {minsu.pinStatus === 'red-star' ? (
-                        <div className="text-lg flex-shrink-0">⭐</div>
+                        <Star className="w-3 h-3 text-red-500 fill-red-500 flex-shrink-0" />
                       ) : (
                         <div
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
