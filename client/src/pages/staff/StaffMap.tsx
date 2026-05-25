@@ -161,9 +161,9 @@ export default function StaffMap() {
         subtitle={`${staffName} · 負責區域：${assignedAreas.join('、')}`}
       />
 
-      <div className="flex h-[calc(100vh-73px)] bg-slate-50">
+      <div className="flex h-[calc(100vh-73px)] bg-slate-50 relative">
         {/* 左側邊欄 */}
-        <div className="w-64 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+        <div className="w-64 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-20">
           {/* 頂部標題 */}
           <div className="p-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
@@ -283,10 +283,11 @@ export default function StaffMap() {
         {/* 中間：地圖容器 */}
         <div className="flex-1 relative">
           <div ref={mapRef} className="w-full h-full" />
+        </div>
 
-          {/* 右側：民宿詳情卡片 */}
-          {selectedMinsu && (
-            <div className="absolute top-4 right-4 w-96 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200 z-10">
+        {/* 右側：民宿詳情卡片 */}
+        {selectedMinsu && (
+          <div className="fixed top-20 right-4 w-96 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200 z-50">
               {/* 卡片頭部 */}
               <div className="p-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-xl">
                 <div className="flex items-start justify-between mb-3">
@@ -408,7 +409,6 @@ export default function StaffMap() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </Layout>
   );
