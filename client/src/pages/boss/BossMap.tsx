@@ -167,10 +167,7 @@ export default function BossMap() {
                     <span className="text-slate-500">地址</span>
                     <p className="font-medium">{selectedMinsu.address}</p>
                   </div>
-                  <div>
-                    <span className="text-slate-500">類型</span>
-                    <p className="font-medium">{selectedMinsu.type}</p>
-                  </div>
+
                   <div>
                     <span className="text-slate-500">合作次數</span>
                     <p className="font-medium">{selectedMinsu.cooperationCount} 次</p>
