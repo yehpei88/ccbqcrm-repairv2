@@ -12,7 +12,7 @@ import { MapPin, Star, Phone, X } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 
-type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold' | 'gray';
+type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
 
 const PIN_COLORS: Record<PinStatus, { icon: string; label: string; bg: string; color: string }> = {
   'red-star': { icon: '⭐', label: '🔴⭐ 紅星', bg: '#ef4444', color: '#fff' },
@@ -20,7 +20,6 @@ const PIN_COLORS: Record<PinStatus, { icon: string; label: string; bg: string; c
   'green': { icon: '🟢', label: '🟢 綠標', bg: '#22c55e', color: '#fff' },
   'purple': { icon: '🟣', label: '🟣 紫標', bg: '#a855f7', color: '#fff' },
   'gold': { icon: '🟡', label: '🟡 金標', bg: '#eab308', color: '#000' },
-  'gray': { icon: '⚫', label: '⚫ 灰標', bg: '#6b7280', color: '#fff' },
 };
 
 export default function StaffMap() {
