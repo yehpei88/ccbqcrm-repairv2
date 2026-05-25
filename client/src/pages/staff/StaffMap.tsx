@@ -244,10 +244,7 @@ export default function StaffMap() {
             <div className="space-y-1">
               {Object.entries(PIN_COLORS).map(([key, config]) => (
                 <div key={key} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full`} style={{ background: config.bg }} />
-                    <span className="text-slate-700">{config.label}</span>
-                  </div>
+                  <span className="text-slate-700">{config.label}</span>
                   <span className="font-semibold text-slate-600">{pinCounts[key as PinStatus] || 0} 家</span>
                 </div>
               ))}
