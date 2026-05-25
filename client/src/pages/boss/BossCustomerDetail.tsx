@@ -338,28 +338,7 @@ export default function BossCustomerDetail() {
                 </div>
               )}
 
-              {/* 新增未接電話按鈕 */}
-              {!missedCalls[selectedMinsu.id] && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full gap-1.5"
-                  onClick={() => {
-                    setMissedCalls(prev => ({
-                      ...prev,
-                      [selectedMinsu.id]: {
-                        date: new Date().toISOString().split('T')[0],
-                        remindDays: 7,
-                        phoneStatus: 'pending'
-                      }
-                    }));
-                    toast.success('已新增未接電話記錄');
-                  }}
-                >
-                  <span className="text-lg">📴</span>
-                  標記未接電話
-                </Button>
-              )}
+
 
               {/* 備注輸入 */}
               <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
