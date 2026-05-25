@@ -1,5 +1,5 @@
 // 聯繫完成對話框 - 完全按照文件 6.2 和 6.4 的邏輯實現
-// 每個通話結果選擇後顯示對應的後續狀態和系統操作
+// 根據六大回饋狀態顯示對應的快選標籤
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +27,7 @@ const FEEDBACK_STATES: Record<CallResult, {
   systemAction: string;
   followUpDays?: number;
   showFollowUpDaysInput?: boolean;
+  availableTags?: string[]; // 該狀態可用的快選標籤
 }> = {
   'agreed': {
     label: '✅ 答應加賴',
@@ -36,6 +37,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     pinChange: '紅色 → 綠色',
     systemAction: '觸發 LINE API 自動發送邀請+菜單；流入自動化流程',
     followUpDays: 0,
+    availableTags: ['詢問回饋', '需老闆回覆', '態度積極', '管多間民宿', '約定回訪日期', '其他'],
   },
   'hesitating': {
     label: '🟡 猶豫中',
@@ -46,6 +48,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     systemAction: '保留待追；系統自動提醒通知；人員入庫待追',
     followUpDays: 7,
     showFollowUpDaysInput: true,
+    availableTags: ['詢問回饋', '需老闆回覆', '態度積極', '管多間民宿', '約定回訪日期', '其他'],
   },
   'rejected': {
     label: '❌ 拒絕加賴（強烈）',
@@ -55,6 +58,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     pinChange: '維持紅色，大幅降評',
     systemAction: '記錄拒絕；設定 30 天不追蹤；快速篩選；降度評分拒絕',
     followUpDays: 30,
+    availableTags: [], // 拒絕加賴不顯示快選標籤
   },
   'invalid': {
     label: '🔴 空號',
@@ -64,6 +68,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     pinChange: '標記空號',
     systemAction: '評估是否應該更新資訊；重新核對資訊（待確認）',
     followUpDays: 0,
+    availableTags: [], // 空號不顯示快選標籤
   },
   'closed': {
     label: '⭕ 不營業',
@@ -73,6 +78,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     pinChange: '標記主動',
     systemAction: '評估停業狀態；不追蹤',
     followUpDays: 0,
+    availableTags: [], // 不營業不顯示快選標籤
   },
   'missed': {
     label: '🟠 未接',
@@ -83,6 +89,7 @@ const FEEDBACK_STATES: Record<CallResult, {
     systemAction: '預設系統自動提醒通知；電話回撥',
     followUpDays: 7,
     showFollowUpDaysInput: true,
+    availableTags: [], // 未接不顯示快選標籤
   },
 };
 
@@ -195,7 +202,7 @@ export function ContactCompleteDialog({
         note,
         followUpDays,
         lineId: selectedResult === 'agreed' ? lineId : undefined,
-        quickTags: selectedResult !== 'rejected' ? Array.from(selectedTags) : undefined,
+        quickTags: Array.from(selectedTags),
         tagDetails: Object.keys(tagDetails).length > 0 ? tagDetails : undefined,
       });
       // 重置狀態
@@ -241,6 +248,9 @@ export function ContactCompleteDialog({
   };
 
   if (!minsu) return null;
+
+  // 獲取當前狀態可用的快選標籤
+  const availableTags = selectedResult ? FEEDBACK_STATES[selectedResult].availableTags || [] : [];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -360,145 +370,145 @@ export function ContactCompleteDialog({
                 </div>
               </Card>
 
-              {/* 快速標籤 - 拒絕加賴時不顯示 */}
-              {selectedResult !== 'rejected' && (
+              {/* 快速標籤 - 只在有可用標籤時顯示 */}
+              {availableTags.length > 0 && (
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-slate-700 block">快速標籤（可複選）</label>
                   <div className="space-y-2">
-                    {Object.entries(QUICK_TAGS_CONFIG).map(([tagKey, tagConfig]) => (
-                      <div key={tagKey} className="space-y-2">
-                        <button
-                          onClick={() => handleTagToggle(tagKey)}
-                          className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
-                            selectedTags.has(tagKey)
-                              ? 'bg-blue-50 border-blue-300'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className={`font-medium text-sm ${selectedTags.has(tagKey) ? 'text-blue-700' : 'text-slate-700'}`}>
-                                {tagConfig.label}
-                              </div>
-                              <div className="text-xs text-slate-500 mt-1">{tagConfig.description}</div>
-                            </div>
-                            <div className={`text-xs font-semibold px-2 py-1 rounded ${
+                    {availableTags.map((tagKey) => {
+                      const tagConfig = QUICK_TAGS_CONFIG[tagKey];
+                      return (
+                        <div key={tagKey} className="space-y-2">
+                          <button
+                            onClick={() => handleTagToggle(tagKey)}
+                            className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all ${
                               selectedTags.has(tagKey)
-                                ? 'bg-blue-200 text-blue-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}>
-                              {selectedTags.has(tagKey) ? '✓' : '○'}
+                                ? 'bg-blue-50 border-blue-300'
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className={`font-medium text-sm ${selectedTags.has(tagKey) ? 'text-blue-700' : 'text-slate-700'}`}>
+                                  {tagConfig.label}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-1">
+                                  {tagConfig.description}
+                                </div>
+                              </div>
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                selectedTags.has(tagKey)
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-slate-300'
+                              }`}>
+                                {selectedTags.has(tagKey) && (
+                                  <span className="text-white text-xs">✓</span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </button>
+                          </button>
 
-                        {/* 標籤對應的互動欄位 */}
-                        {selectedTags.has(tagKey) && (
-                          <div className="ml-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                            {tagConfig.action === 'search' && (
-                              <div>
-                                <label className="text-xs font-medium text-slate-600 block mb-1">
-                                  <Search className="w-3 h-3 inline mr-1" />
-                                  {tagConfig.actionLabel}
-                                </label>
-                                <input
-                                  type="text"
-                                  placeholder="輸入民宿名稱（多個用逗號分隔）"
-                                  value={tagDetails[tagKey] || ''}
-                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
-                                />
-                              </div>
-                            )}
-                            {tagConfig.action === 'notify' && (
-                              <div className="text-xs text-slate-600">
-                                <Badge className="bg-orange-100 text-orange-700 text-xs">
-                                  🔔 {tagConfig.actionLabel}
-                                </Badge>
-                              </div>
-                            )}
-                            {tagConfig.action === 'mark' && (
-                              <div className="text-xs text-slate-600">
-                                <Badge className="bg-green-100 text-green-700 text-xs">
+                          {/* 標籤對應的互動元素 */}
+                          {selectedTags.has(tagKey) && (
+                            <div className="ml-3 p-3 bg-slate-50 rounded border border-slate-200 space-y-2">
+                              {tagConfig.action === 'search' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="輸入民宿名稱..."
+                                    value={tagDetails[tagKey] || ''}
+                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                  />
+                                </div>
+                              )}
+
+                              {tagConfig.action === 'date' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={tagDetails[tagKey] || ''}
+                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                  />
+                                </div>
+                              )}
+
+                              {tagConfig.action === 'text' && (
+                                <div>
+                                  <label className="text-xs font-medium text-slate-600 block mb-2">
+                                    {tagConfig.actionLabel}
+                                  </label>
+                                  <textarea
+                                    placeholder="輸入其他備註..."
+                                    value={tagDetails[tagKey] || ''}
+                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                    rows={2}
+                                  />
+                                </div>
+                              )}
+
+                              {(tagConfig.action === 'notify' || tagConfig.action === 'mark') && (
+                                <div className="text-xs text-slate-600 p-2 bg-white rounded border border-slate-200">
                                   ✓ {tagConfig.actionLabel}
-                                </Badge>
-                              </div>
-                            )}
-                            {tagConfig.action === 'date' && (
-                              <div>
-                                <label className="text-xs font-medium text-slate-600 block mb-1">
-                                  <Calendar className="w-3 h-3 inline mr-1" />
-                                  {tagConfig.actionLabel}
-                                </label>
-                                <input
-                                  type="date"
-                                  value={tagDetails[tagKey] || ''}
-                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
-                                />
-                              </div>
-                            )}
-                            {tagConfig.action === 'text' && (
-                              <div>
-                                <label className="text-xs font-medium text-slate-600 block mb-1">
-                                  {tagConfig.actionLabel}
-                                </label>
-                                <input
-                                  type="text"
-                                  placeholder="輸入備註內容"
-                                  value={tagDetails[tagKey] || ''}
-                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* 備注欄 */}
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-2">自由文字備注</label>
+              {/* 自由文字備注 - 只顯示一個 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">備注（可選）</label>
                 <Textarea
-                  placeholder="記錄通話內容、客戶反應、特殊需求等..."
+                  placeholder="輸入其他備註或特殊說明..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="min-h-24 text-sm"
+                  className="min-h-24"
                 />
               </div>
             </div>
           )}
 
-          {/* 按鈕組 */}
-          <div className="flex gap-2 justify-end pt-4 border-t border-slate-200">
+          {/* 按鈕區域 */}
+          <div className="flex gap-2 justify-end pt-4 border-t">
             {step !== 'callResult' && (
               <Button variant="outline" onClick={handleBack}>
                 上一步
               </Button>
             )}
-            {step !== 'note' && (
-              <Button
-                onClick={() => {
-                  if (step === 'callResult' && selectedResult) {
-                    handleSelectResult(selectedResult);
-                  } else if (step === 'lineId' && selectedResult === 'agreed') {
-                    setStep('note');
-                  } else if (step === 'followUp') {
-                    setStep('note');
-                  }
-                }}
-                disabled={!selectedResult || (step === 'lineId' && !lineId.trim())}
-              >
-                下一步
+            {step === 'note' ? (
+              <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                完成
               </Button>
-            )}
-            {step === 'note' && (
-              <Button onClick={handleSave} className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600">
-                確認保存
+            ) : (
+              <Button onClick={() => {
+                if (step === 'lineId' && !lineId.trim()) {
+                  alert('請輸入 LINE ID');
+                  return;
+                }
+                const state = FEEDBACK_STATES[selectedResult!];
+                if (step === 'lineId') {
+                  setStep('note');
+                } else if (step === 'followUp') {
+                  setStep('note');
+                } else if (step === 'callResult') {
+                  handleSelectResult(selectedResult!);
+                }
+              }}>
+                下一步
               </Button>
             )}
           </div>
