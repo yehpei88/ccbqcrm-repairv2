@@ -281,7 +281,7 @@ export default function StaffMap() {
         </div>
 
         {/* 中間：地圖容器 */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative z-0">
           <div ref={mapRef} className="w-full h-full" />
         </div>
       </div>
