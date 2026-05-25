@@ -1,6 +1,5 @@
 // CC 代客烤肉 CRM 系統 — 顧客開發人員地圖作業頁面
-// 設計：左側邊欄（AI 推薦 + PIN 說明 + 民宿清單）、中間滿版地圖、右側民宿詳情卡片
-// 基於 Google Drive 設計圖
+// 完全按照 GitHub v4 版本設計
 
 import { useState, useEffect, useRef } from 'react';
 import Layout, { PageHeader } from '@/components/Layout';
@@ -15,13 +14,13 @@ import { toast } from 'sonner';
 
 type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold' | 'gray';
 
-const PIN_COLORS: Record<PinStatus, { label: string; bg: string }> = {
-  'red-star': { label: '🔴⭐ 紅星', bg: '#ef4444' },
-  'red': { label: '🔴 紅標', bg: '#f87171' },
-  'green': { label: '🟢 綠標', bg: '#22c55e' },
-  'purple': { label: '🟣 紫標', bg: '#a855f7' },
-  'gold': { label: '🟡 金標', bg: '#eab308' },
-  'gray': { label: '⚫ 灰標', bg: '#6b7280' },
+const PIN_COLORS: Record<PinStatus, { icon: string; label: string; bg: string; color: string }> = {
+  'red-star': { icon: '⭐', label: '🔴⭐ 紅星', bg: '#ef4444', color: '#fff' },
+  'red': { icon: '🔴', label: '🔴 紅標', bg: '#f87171', color: '#fff' },
+  'green': { icon: '🟢', label: '🟢 綠標', bg: '#22c55e', color: '#fff' },
+  'purple': { icon: '🟣', label: '🟣 紫標', bg: '#a855f7', color: '#fff' },
+  'gold': { icon: '🟡', label: '🟡 金標', bg: '#eab308', color: '#000' },
+  'gray': { icon: '⚫', label: '⚫ 灰標', bg: '#6b7280', color: '#fff' },
 };
 
 export default function StaffMap() {
@@ -32,7 +31,6 @@ export default function StaffMap() {
   const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterArea, setFilterArea] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('score');
 
   // 從 localStorage 獲取登入的顧客開發人員信息
   const staffId = localStorage.getItem('staffId');
@@ -50,15 +48,10 @@ export default function StaffMap() {
   // 過濾該顧客開發人員分配區域的民宿
   const assignedMinsu = MOCK_MINSU_DATA.filter(m => assignedAreas.includes(m.area));
 
-  // 應用篩選和排序
+  // 應用篩選
   const filteredMinsu = assignedMinsu
     .filter(m => filterStatus === 'all' || m.pinStatus === filterStatus)
-    .filter(m => filterArea === 'all' || m.area === filterArea)
-    .sort((a, b) => {
-      if (sortBy === 'score') return b.aiScore - a.aiScore;
-      if (sortBy === 'area') return a.area.localeCompare(b.area);
-      return 0;
-    });
+    .filter(m => filterArea === 'all' || m.area === filterArea);
 
   // AI 推薦優先撥打（紅星民宿，按 AI 評分排序，最多 3 家）
   const aiRecommended = assignedMinsu
@@ -66,8 +59,11 @@ export default function StaffMap() {
     .sort((a, b) => b.aiScore - a.aiScore)
     .slice(0, 3);
 
-  // 最近 28 家民宿
-  const recentMinsu = assignedMinsu.slice(0, 28);
+  // 計算各狀態民宿數量
+  const pinCounts = Object.keys(PIN_COLORS).reduce((acc, status) => {
+    acc[status as PinStatus] = assignedMinsu.filter(m => m.pinStatus === status).length;
+    return acc;
+  }, {} as Record<PinStatus, number>);
 
   // 初始化 Leaflet 地圖
   useEffect(() => {
@@ -123,14 +119,14 @@ export default function StaffMap() {
       const icon = L.divIcon({
         className: 'custom-pin',
         html: `<div style="
-          width: 32px; height: 32px; border-radius: 50%;
-          background: ${pinColor}; border: 3px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          width: 28px; height: 28px; border-radius: 50%;
+          background: ${pinColor}; border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
           display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: bold; color: white;
+          font-size: 12px; font-weight: bold; color: ${PIN_COLORS[minsu.pinStatus as PinStatus]?.color || '#fff'};
         ">${minsu.pinStatus === 'red-star' ? '⭐' : ''}</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
 
       const marker = L.marker([minsu.latitude, minsu.longitude], { icon })
@@ -140,9 +136,9 @@ export default function StaffMap() {
           mapInstanceRef.current.setView([minsu.latitude, minsu.longitude], 15);
         });
 
-      marker.bindTooltip(`${minsu.name} (${minsu.aiScore}分)`, { 
+      marker.bindTooltip(minsu.name, { 
         direction: 'top', 
-        offset: [0, -16],
+        offset: [0, -15],
         permanent: false,
       });
 
@@ -155,7 +151,8 @@ export default function StaffMap() {
   };
 
   const getUniqueAreas = () => {
-    return [...new Set(assignedMinsu.map(m => m.area))];
+    const areas = new Set(assignedMinsu.map(m => m.area));
+    return Array.from(areas);
   };
 
   return (
@@ -167,9 +164,9 @@ export default function StaffMap() {
 
       <div className="flex h-[calc(100vh-73px)] bg-slate-50">
         {/* 左側邊欄 */}
-        <div className="w-72 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
-          {/* 頁面標題 */}
-          <div className="p-4 border-b border-slate-200">
+        <div className="w-64 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+          {/* 頂部標題 */}
+          <div className="p-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                 🔥
@@ -182,32 +179,32 @@ export default function StaffMap() {
           </div>
 
           {/* AI 推薦優先撥打 */}
-          <div className="p-4 border-b border-slate-200 bg-red-50">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="p-3 border-b border-slate-200 bg-red-50">
+            <div className="flex items-center gap-2 mb-2">
               <Star className="w-4 h-4 text-red-500 fill-red-500" />
               <span className="text-sm font-semibold text-red-700">AI 推薦優先撥打</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {aiRecommended.length > 0 ? (
                 aiRecommended.map((minsu, idx) => (
                   <div
                     key={minsu.id}
                     onClick={() => setSelectedMinsu(minsu)}
-                    className="p-2.5 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow border border-red-100"
+                    className="p-2 bg-white rounded-lg cursor-pointer hover:shadow-sm transition-shadow border border-red-100 text-xs"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="font-semibold text-xs text-slate-900">{minsu.name}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{minsu.area}</div>
+                        <div className="font-semibold text-slate-900">{idx + 1}. {minsu.name}</div>
+                        <div className="text-slate-500 text-xs mt-0.5">{minsu.area}</div>
                       </div>
-                      <Badge variant="secondary" className="text-xs ml-2 bg-red-100 text-red-700">
+                      <Badge variant="secondary" className="text-xs ml-2 bg-red-100 text-red-700 font-semibold">
                         {minsu.aiScore}/50
                       </Badge>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-xs text-slate-500 text-center py-3">
+                <div className="text-xs text-slate-500 text-center py-2">
                   暫無紅星民宿
                 </div>
               )}
@@ -223,7 +220,7 @@ export default function StaffMap() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部顯示</SelectItem>
-                {Object.entries(PIN_STATUS_CONFIG).map(([key, cfg]) => (
+                {Object.entries(PIN_COLORS).map(([key, cfg]) => (
                   <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -245,29 +242,26 @@ export default function StaffMap() {
           {/* PIN 狀態說明 */}
           <div className="p-3 border-b border-slate-200">
             <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">PIN 狀態說明</div>
-            <div className="space-y-1.5">
-              {Object.entries(PIN_COLORS).map(([key, config]) => {
-                const count = assignedMinsu.filter(m => m.pinStatus === key).length;
-                return (
-                  <div key={key} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full`} style={{ background: config.bg }} />
-                      <span className="text-slate-700">{config.label}</span>
-                    </div>
-                    <span className="font-semibold text-slate-600">{count}</span>
+            <div className="space-y-1">
+              {Object.entries(PIN_COLORS).map(([key, config]) => (
+                <div key={key} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full`} style={{ background: config.bg }} />
+                    <span className="text-slate-700">{config.label}</span>
                   </div>
-                );
-              })}
+                  <span className="font-semibold text-slate-600">{pinCounts[key as PinStatus] || 0} 家</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* 最近 28 家民宿 */}
+          {/* 民宿清單 */}
           <div className="flex-1 overflow-y-auto">
             <div className="p-3 space-y-1">
               <div className="text-xs text-slate-500 mb-2 font-medium">
-                最近 28 家民宿
+                顯示 {filteredMinsu.length} 家民宿
               </div>
-              {recentMinsu.map((minsu, idx) => (
+              {filteredMinsu.map((minsu) => (
                 <div
                   key={minsu.id}
                   onClick={() => setSelectedMinsu(minsu)}
@@ -278,15 +272,11 @@ export default function StaffMap() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: PIN_COLORS[minsu.pinStatus as PinStatus]?.bg }}
-                    />
+                    {minsu.pinStatus === 'red-star' && <Star className="w-3 h-3 text-red-500 fill-red-500 flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-900 truncate">{minsu.name}</div>
-                      <div className="text-xs text-slate-500">{minsu.area}</div>
+                      <div className="text-xs text-slate-500">{minsu.area} · {minsu.aiScore}分</div>
                     </div>
-                    <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{minsu.aiScore}/50</span>
                   </div>
                 </div>
               ))}
@@ -300,13 +290,13 @@ export default function StaffMap() {
 
           {/* 右側：民宿詳情卡片 */}
           {selectedMinsu && (
-            <div className="absolute top-4 right-4 w-72 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 z-10">
+            <div className="absolute top-4 right-4 w-80 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-lg shadow-lg border border-slate-200 z-10">
               {/* 卡片頭部 */}
               <div className="p-4 border-b border-slate-200 sticky top-0 bg-white">
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-sm text-slate-900">{selectedMinsu.name}</h3>
-                    <Badge className="mt-2 text-xs bg-red-100 text-red-700">
+                    <Badge className="mt-2 text-xs bg-red-100 text-red-700 font-semibold">
                       {PIN_COLORS[selectedMinsu.pinStatus as PinStatus]?.label} · AI {selectedMinsu.aiScore}/50
                     </Badge>
                   </div>
@@ -323,18 +313,21 @@ export default function StaffMap() {
               <div className="p-4 space-y-4 text-xs">
                 {/* 基本資料 */}
                 <div className="space-y-2">
-                  <div>
-                    <span className="text-slate-500 text-xs">基本資料</span>
-                    <p className="font-medium text-slate-900 mt-1">{selectedMinsu.address}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="text-slate-600 font-semibold text-xs">基本資料</div>
+                  <div className="space-y-1.5">
                     <div>
-                      <span className="text-slate-500 text-xs">電話</span>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.phone}</p>
+                      <span className="text-slate-500 text-xs">地址</span>
+                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
                     </div>
-                    <div>
-                      <span className="text-slate-500 text-xs">地區</span>
-                      <p className="font-medium text-slate-900 mt-1">{selectedMinsu.area}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-slate-500 text-xs">電話</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.phone}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs">地區</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.area}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -349,7 +342,9 @@ export default function StaffMap() {
                     </div>
                     <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
                       <span className="text-sm">💬</span>
-                      <span className="font-medium text-slate-900">LINE 狀態：{selectedMinsu.pinStatus === 'green' ? '✅ 已加' : '❌ 未加'}</span>
+                      <span className="font-medium text-slate-900">
+                        LINE 狀態：{selectedMinsu.pinStatus === 'green' ? '✅ 已加' : '❌ 未加'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -382,8 +377,7 @@ export default function StaffMap() {
                 {/* 快速操作 */}
                 <div className="border-t border-slate-200 pt-3">
                   <Button
-                    className="w-full h-9 text-sm gap-2 font-semibold"
-                    style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
+                    className="w-full h-9 text-sm gap-2 font-semibold bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
                     onClick={() => handleCall(selectedMinsu)}
                   >
                     <Phone className="w-4 h-4" />

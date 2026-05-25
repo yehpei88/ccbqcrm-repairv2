@@ -167,7 +167,6 @@ export function GoogleMapView({
         center={initialCenter}
         zoom={initialZoom}
         onLoad={handleMapLoad}
-        className={cn('relative w-full h-full', className)}
         options={{
           streetViewControl: false,
           mapTypeControl: false,

@@ -18,6 +18,8 @@ import { MapPin, Edit3, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MapView } from '@/components/Map';
 
+type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
+
 const PIN_COLORS: Record<PinStatus, string> = {
   'red-star': '#ef4444',
   'red': '#f87171',
@@ -288,7 +290,7 @@ export default function BossMap() {
                 <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 text-sm text-blue-700">
                   <div className="font-semibold mb-1">變更預覽</div>
                   <div>
-                    {selectedMinsu.name} 的 Pin 狀態將從 <strong>{PIN_STATUS_CONFIG[selectedMinsu.pinStatus].label}</strong> 變更為 <strong>{PIN_STATUS_CONFIG[newStatus].label}</strong>
+                    {selectedMinsu.name} 的 Pin 狀態將從 <strong>{PIN_STATUS_CONFIG[selectedMinsu.pinStatus as PinStatus].label}</strong> 變更為 <strong>{PIN_STATUS_CONFIG[newStatus as PinStatus].label}</strong>
                   </div>
                 </div>
               )}

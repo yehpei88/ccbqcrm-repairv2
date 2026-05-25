@@ -220,20 +220,7 @@ export default function BossCustomerDetail() {
                       <div className="font-medium text-foreground">{selectedMinsu.area}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Home size={14} className="text-muted-foreground flex-shrink-0" />
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-0.5">房間數</div>
-                      <div className="font-medium text-foreground">{selectedMinsu.rooms} 間</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Umbrella size={14} className="text-muted-foreground flex-shrink-0" />
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-0.5">客戶類型</div>
-                      <div className="font-medium text-foreground">{selectedMinsu.customerType}</div>
-                    </div>
-                  </div>
+
                 </div>
               </div>
 
