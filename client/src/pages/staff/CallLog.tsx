@@ -1,13 +1,11 @@
-// CC 代客烤肉 CRM 系統 — 顧客開發人員撥號登錄頁面
-// 設計：電話開發記錄，5 種回饋狀態，直覺操作
+// CC 代客烤肉 CRM 系統 — 顧客開發人員個人工作紀錄頁面
+// 設計：績效看板 + 已完成撥打歷史清單
 
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import Layout, { PageHeader } from '@/components/Layout';
 import { MOCK_MINSU_DATA, CALL_RESULT_CONFIG, PIN_STATUS_CONFIG, type Minsu, type CallResult } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -16,8 +14,10 @@ import { toast } from 'sonner';
 import {
   Phone, Search, CheckCircle, Clock, XCircle,
   PhoneOff, Store, ChevronDown, ChevronUp, Star,
-  MessageSquare, FileText
+  MessageSquare, FileText, TrendingUp
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 const RESULT_ICONS: Record<CallResult, React.ReactNode> = {
@@ -29,16 +29,14 @@ const RESULT_ICONS: Record<CallResult, React.ReactNode> = {
   'missed': <PhoneOff size={16} className="text-gray-500" />,
 };
 
-// 今日待撥清單：優先紅星，其次紅標（只限於分配的區域）
-const getTodayList = (assignedAreas: string[]) => {
-  return MOCK_MINSU_DATA
-    .filter(m => (m.pinStatus === 'red-star' || m.pinStatus === 'red') && assignedAreas.includes(m.area))
-    .sort((a, b) => {
-      if (a.pinStatus === 'red-star' && b.pinStatus !== 'red-star') return -1;
-      if (b.pinStatus === 'red-star' && a.pinStatus !== 'red-star') return 1;
-      return b.aiScore - a.aiScore;
-    });
-};
+// 模擬已完成撥打的歷史紀錄（本月數據）
+const MOCK_CALL_HISTORY = [
+  { id: 'm001', name: '礁溪溫泉秘湯', area: '礁溪鄉', phone: '03-9871234', result: 'agreed' as CallResult, time: '今天 14:30', lineId: 'chen_minsu_001' },
+  { id: 'm002', name: '員山梅花湖民宿', area: '員山鄉', phone: '03-9221234', result: 'hesitating' as CallResult, time: '今天 13:15', note: '對方說下週再聯絡' },
+  { id: 'm003', name: '壯圍海岸民宿', area: '壯圍鄉', phone: '03-9381234', result: 'rejected' as CallResult, time: '昨天 16:45', note: '婉拒，暫時不考慮' },
+  { id: 'm004', name: '礁溪山景民宿', area: '礁溪鄉', phone: '03-9561234', result: 'agreed' as CallResult, time: '昨天 15:20', lineId: 'mountain_view_01' },
+  { id: 'm005', name: '員山竹林小屋', area: '員山鄉', phone: '03-9441234', result: 'missed' as CallResult, time: '3 天前 10:00', note: '未接，稍後再試' },
+];
 
 function CallResultButton({
   result,
@@ -69,13 +67,9 @@ function CallResultButton({
 export default function CallLog() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState('');
-  const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
-  const [showCallDialog, setShowCallDialog] = useState(false);
-  const [callResult, setCallResult] = useState<CallResult | null>(null);
-  const [note, setNote] = useState('');
-  const [lineId, setLineId] = useState('');
-  const [callHistory, setCallHistory] = useState<Record<string, { result: CallResult; note: string; time: string; lineId?: string }>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<typeof MOCK_CALL_HISTORY[0] | null>(null);
 
   // 從 localStorage 獲取登入的顧客開發人員信息
   const staffId = localStorage.getItem('staffId');
@@ -90,83 +84,73 @@ export default function CallLog() {
     }
   }, [staffId, setLocation]);
 
-  const TODAY_LIST = getTodayList(assignedAreas);
-
-  const filtered = TODAY_LIST.filter(m =>
-    !search || m.name.includes(search) || m.area.includes(search) || m.phone.includes(search)
+  // 篩選搜尋結果
+  const filtered = MOCK_CALL_HISTORY.filter(record =>
+    !search || record.name.includes(search) || record.area.includes(search) || record.phone.includes(search)
   );
 
-  const handleOpenCall = (minsu: Minsu) => {
-    setSelectedMinsu(minsu);
-    setCallResult(callHistory[minsu.id]?.result ?? null);
-    setNote(callHistory[minsu.id]?.note ?? '');
-    setLineId(callHistory[minsu.id]?.lineId ?? '');
-    setShowCallDialog(true);
+  // 計算績效數據
+  const stats = {
+    totalCalls: MOCK_CALL_HISTORY.length,
+    connectedRate: Math.round((MOCK_CALL_HISTORY.filter(h => h.result !== 'missed' && h.result !== 'invalid' && h.result !== 'closed').length / MOCK_CALL_HISTORY.length) * 100),
+    agreedRate: Math.round((MOCK_CALL_HISTORY.filter(h => h.result === 'agreed').length / MOCK_CALL_HISTORY.length) * 100),
+    todayCount: MOCK_CALL_HISTORY.filter(h => h.time.includes('今天')).length,
   };
 
-  const handleSaveCall = () => {
-    if (!callResult) {
-      toast.error('請選擇通話結果');
-      return;
-    }
-    if (callResult === 'agreed' && !lineId.trim()) {
-      toast.error('請輸入 LINE ID');
-      return;
-    }
-    if (selectedMinsu) {
-      const now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-      setCallHistory(prev => ({
-        ...prev,
-        [selectedMinsu.id]: { result: callResult, note, time: now, lineId: callResult === 'agreed' ? lineId : undefined }
-      }));
-      toast.success(`已登錄「${selectedMinsu.name}」的通話結果：${CALL_RESULT_CONFIG[callResult].label}`);
-      if (callResult === 'agreed') {
-        toast.success('🎉 已觸發自動化流程：LINE 邀請 + 菜單已自動發送！', { duration: 4000 });
-      }
-      setShowCallDialog(false);
-      setLineId('');
-    }
-  };
-
-  const todayStats = {
-    total: Object.keys(callHistory).length,
-    agreed: Object.values(callHistory).filter(h => h.result === 'agreed').length,
-    hesitating: Object.values(callHistory).filter(h => h.result === 'hesitating').length,
-    rejected: Object.values(callHistory).filter(h => h.result === 'rejected').length,
-    invalid: Object.values(callHistory).filter(h => h.result === 'invalid' || h.result === 'closed').length,
-    missed: Object.values(callHistory).filter(h => h.result === 'missed').length,
+  const handleOpenDetail = (record: typeof MOCK_CALL_HISTORY[0]) => {
+    setSelectedRecord(record);
+    setShowDetailDialog(true);
   };
 
   return (
     <Layout role="staff">
       <PageHeader
-        title={`撥號登錄 - ${staffName}`}
-        subtitle={`今日電話開發清單 (負責區域: ${assignedAreas.join('、')}) — 登錄通話結果`}
-        actions={
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">今日進度：</span>
-            <span className="font-bold text-foreground">{todayStats.total}</span>
-            <span className="text-muted-foreground">/ {TODAY_LIST.length} 家</span>
-          </div>
-        }
+        title={`個人工作紀錄 - ${staffName}`}
+        subtitle={`負責區域: ${assignedAreas.join('、')} — 查看撥打歷史與績效數據`}
       />
 
-      <div className="p-6 space-y-5">
-        {/* 今日統計 */}
-        <div className="grid grid-cols-6 gap-3">
-          {[
-            { label: '已撥打', value: todayStats.total, color: 'bg-blue-50 text-blue-700 border-blue-100' },
-            { label: '✅ 答應加賴', value: todayStats.agreed, color: 'bg-green-50 text-green-700 border-green-100' },
-            { label: '⏳ 猶豫中', value: todayStats.hesitating, color: 'bg-yellow-50 text-yellow-700 border-yellow-100' },
-            { label: '❌ 拒絕', value: todayStats.rejected, color: 'bg-red-50 text-red-700 border-red-100' },
-            { label: '📵 空號/不營業', value: todayStats.invalid, color: 'bg-gray-50 text-gray-600 border-gray-100' },
-            { label: '📴 未接電話', value: todayStats.missed, color: 'bg-gray-50 text-gray-700 border-gray-100' },
-          ].map(item => (
-            <div key={item.label} className={cn('rounded-xl p-3 border text-center', item.color)}>
-              <div className="text-xl font-black">{item.value}</div>
-              <div className="text-xs mt-0.5">{item.label}</div>
+      <div className="p-6 space-y-6">
+        {/* 績效看板 - 四大數據卡片 */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-blue-600 font-medium mb-1">本月撥打通數</div>
+                <div className="text-3xl font-bold text-blue-900">{stats.totalCalls}</div>
+              </div>
+              <Phone size={24} className="text-blue-400" />
             </div>
-          ))}
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-green-600 font-medium mb-1">接通率</div>
+                <div className="text-3xl font-bold text-green-900">{stats.connectedRate}%</div>
+              </div>
+              <TrendingUp size={24} className="text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-purple-600 font-medium mb-1">答應率</div>
+                <div className="text-3xl font-bold text-purple-900">{Math.round((MOCK_CALL_HISTORY.filter(h => h.result === 'agreed').length / stats.totalCalls) * 100)}%</div>
+              </div>
+              <CheckCircle size={24} className="text-purple-400" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-orange-600 font-medium mb-1">今日撥打</div>
+                <div className="text-3xl font-bold text-orange-900">{stats.todayCount}</div>
+              </div>
+              <Phone size={24} className="text-orange-400" />
+            </div>
+          </div>
         </div>
 
         {/* 搜尋 */}
@@ -180,175 +164,147 @@ export default function CallLog() {
           />
         </div>
 
-        {/* 撥號清單 */}
+        {/* 已完成撥打歷史清單 */}
         <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="px-4 py-3 border-b border-border bg-muted/20 flex items-center gap-2">
             <Phone size={14} className="text-muted-foreground" />
             <span className="text-sm font-semibold text-foreground">撥號紀錄</span>
-            <Badge variant="secondary" className="text-xs">{filtered.length} 家</Badge>
-            <span className="text-xs text-muted-foreground ml-1">（AI 評分高者優先）</span>
+            <Badge variant="secondary" className="text-xs">{filtered.length} 筆</Badge>
           </div>
           <div className="divide-y divide-border">
-            {filtered.map(minsu => {
-              const history = callHistory[minsu.id];
-              const pinCfg = PIN_STATUS_CONFIG[minsu.pinStatus];
-              const isExpanded = expandedId === minsu.id;
+            {filtered.map(record => {
+              const isExpanded = expandedId === record.id;
+              const resultCfg = CALL_RESULT_CONFIG[record.result];
 
               return (
-                <div key={minsu.id}>
+                <div key={record.id}>
                   <div className={cn(
-                    'flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors',
-                    history && 'bg-muted/10'
+                    'flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer'
                   )}>
-                    {/* 序號 + Pin 狀態 */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {minsu.pinStatus === 'red-star' && (
-                        <Star size={12} className="text-red-500" fill="currentColor" />
-                      )}
-                      <div className={cn(
-                        'text-xs px-2 py-0.5 rounded-full font-medium',
-                        pinCfg.bgLight, pinCfg.textColor, 'border', pinCfg.border
-                      )}>
-                        {pinCfg.label}
-                      </div>
+                    {/* 通話結果圖標 */}
+                    <div className="flex-shrink-0">
+                      {RESULT_ICONS[record.result]}
                     </div>
 
                     {/* 民宿資訊 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-foreground">{minsu.name}</span>
-                        <span className="text-xs text-muted-foreground">{minsu.area}</span>
-                        <span className="text-xs text-blue-600 font-medium">AI {minsu.aiScore}分</span>
+                        <span className="font-medium text-sm text-foreground">{record.name}</span>
+                        <span className="text-xs text-muted-foreground">{record.area}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground mt-0.5">{minsu.phone}</div>
+                      <div className="text-sm text-muted-foreground mt-0.5">{record.phone}</div>
                     </div>
 
-                    {/* 通話結果 */}
-                    {history && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={cn('text-xs px-2 py-0.5 rounded-full', CALL_RESULT_CONFIG[history.result].color)}>
-                          {CALL_RESULT_CONFIG[history.result].label}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{history.time}</span>
-                        <button
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => setExpandedId(isExpanded ? null : minsu.id)}
-                        >
-                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* 操作按鈕 */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        className="h-8 px-3 text-xs gap-1"
-                        style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
-                        onClick={() => handleOpenCall(minsu)}
+                    {/* 結果與時間 */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full', resultCfg.color)}>
+                        {resultCfg.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{record.time}</span>
+                      <button
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setExpandedId(isExpanded ? null : record.id)}
                       >
-                        <Phone size={11} />
-                        {history ? '更新' : '撥打'}
-                      </Button>
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
                     </div>
+
+                    {/* 查看詳情按鈕 */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 text-xs"
+                      onClick={() => handleOpenDetail(record)}
+                    >
+                      詳情
+                    </Button>
                   </div>
 
                   {/* 展開備注 */}
-                  {isExpanded && history?.note && (
-                    <div className="px-4 py-2 bg-muted/20 border-t border-border">
-                      <div className="flex items-start gap-2 text-sm">
-                        <FileText size={13} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-                        <span className="text-muted-foreground">{history.note}</span>
-                      </div>
+                  {isExpanded && (record.note || record.lineId) && (
+                    <div className="px-4 py-2 bg-muted/20 border-t border-border space-y-2">
+                      {record.lineId && (
+                        <div className="flex items-start gap-2 text-sm">
+                          <MessageSquare size={13} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-xs text-muted-foreground font-medium">LINE ID</div>
+                            <div className="text-foreground">{record.lineId}</div>
+                          </div>
+                        </div>
+                      )}
+                      {record.note && (
+                        <div className="flex items-start gap-2 text-sm">
+                          <FileText size={13} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-xs text-muted-foreground font-medium">備注</div>
+                            <div className="text-foreground">{record.note}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
+
+          {/* 分頁或加載更多 */}
+          <div className="px-4 py-3 border-t border-border bg-muted/10 flex items-center justify-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs">上一頁</Button>
+            <span className="text-xs text-muted-foreground">第 1 頁 / 共 3 頁</span>
+            <Button variant="outline" size="sm" className="text-xs">下一頁</Button>
+          </div>
         </div>
       </div>
 
-      {/* 撥號登錄 Dialog */}
-      <Dialog open={showCallDialog} onOpenChange={setShowCallDialog}>
+      {/* 詳情對話框 */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Phone size={16} className="text-blue-500" />
-              登錄通話結果 — {selectedMinsu?.name}
+              撥打詳情 — {selectedRecord?.name}
             </DialogTitle>
           </DialogHeader>
-          {selectedMinsu && (
+          {selectedRecord && (
             <div className="space-y-4">
               {/* 民宿資訊 */}
               <div className="bg-muted/30 rounded-lg p-3 text-sm">
                 <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <div>📍 {selectedMinsu.area}</div>
-                  <div>📞 {selectedMinsu.phone}</div>
-                  <div>🎯 AI 評分：{selectedMinsu.aiScore}/50</div>
-                  <div>🏠 {selectedMinsu.isPackage ? '包棟' : '一般'} · {selectedMinsu.hasRainShelter ? '有雨棚' : '無雨棚'}</div>
+                  <div>📍 {selectedRecord.area}</div>
+                  <div>📞 {selectedRecord.phone}</div>
+                  <div>⏰ {selectedRecord.time}</div>
+                  <div>✓ {CALL_RESULT_CONFIG[selectedRecord.result].label}</div>
                 </div>
               </div>
 
-              {/* 通話結果選擇 */}
-              <div>
-                <div className="text-sm font-semibold text-foreground mb-3">通話結果 *</div>
-                <div className="space-y-2">
-                  {(Object.keys(CALL_RESULT_CONFIG) as CallResult[]).map(result => (
-                    <CallResultButton
-                      key={result}
-                      result={result}
-                      selected={callResult === result}
-                      onClick={() => setCallResult(result)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* 自動化說明 */}
-              {callResult === 'agreed' && (
-                <div className="bg-green-50 rounded-lg p-3 border border-green-100 text-sm text-green-700">
-                  <div className="font-semibold mb-1">🎉 自動化流程將觸發</div>
-                  <div className="text-xs space-y-0.5">
-                    <div>✓ 自動發送 LINE 好友邀請</div>
-                    <div>✓ 自動推送歡迎訊息與數位菜單</div>
-                    <div>✓ 進入 AI 意向追蹤流程</div>
+              {/* LINE ID */}
+              {selectedRecord.lineId && (
+                <div>
+                  <div className="text-sm font-medium text-foreground mb-1.5">💬 LINE ID</div>
+                  <div className="bg-green-50 rounded-lg p-3 border border-green-100 text-sm text-green-700 font-mono">
+                    {selectedRecord.lineId}
                   </div>
                 </div>
               )}
 
-              {/* LINE ID 輸入 */}
-              {callResult === 'agreed' && (
+              {/* 備注 */}
+              {selectedRecord.note && (
                 <div>
-                  <div className="text-sm font-medium text-foreground mb-1.5">💬 輸入 LINE ID *</div>
-                  <Input
-                    placeholder="請輸入對方的 LINE ID"
-                    className="text-sm"
-                    value={lineId}
-                    onChange={e => setLineId(e.target.value)}
-                  />
+                  <div className="text-sm font-medium text-foreground mb-1.5">📝 備注</div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-sm text-foreground">
+                    {selectedRecord.note}
+                  </div>
                 </div>
               )}
 
-              {/* 備注 */}
-              <div>
-                <div className="text-sm font-medium text-foreground mb-1.5">備注（選填）</div>
-                <Textarea
-                  placeholder="輸入通話備注，例如：對方說下週再聯絡、老闆不在..."
-                  className="text-sm resize-none"
-                  rows={3}
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                />
-              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+                  關閉
+                </Button>
+              </DialogFooter>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShowCallDialog(false)}>取消</Button>
-            <Button size="sm" onClick={handleSaveCall} disabled={!callResult}>
-              確認登錄
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>
