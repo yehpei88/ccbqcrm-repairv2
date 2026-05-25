@@ -164,7 +164,7 @@ export default function Layout({ children, role }: LayoutProps) {
       </aside>
 
       {/* 主內容區 */}
-      <main className="flex-1 overflow-hidden bg-background relative">
+      <main className="flex-1 overflow-y-auto bg-background relative">
         {children}
       </main>
     </div>
