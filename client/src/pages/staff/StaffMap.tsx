@@ -418,7 +418,9 @@ export default function StaffMap() {
               ...selectedMinsu,
               callResult: data.callResult,
               lineAdded: data.callResult === 'agreed' ? true : selectedMinsu.lineAdded,
+              lineId: data.lineId || selectedMinsu.lineId,
               note: data.note || selectedMinsu.note,
+              quickTags: data.quickTags || selectedMinsu.quickTags,
               // 根據通話結果更新 Pin 狀態
               pinStatus: getPinStatusFromCallResult(data.callResult, selectedMinsu),
               // 記錄通話時間

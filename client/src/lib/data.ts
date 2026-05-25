@@ -47,6 +47,8 @@ export interface Minsu {
   distanceFromCity: number;
   note?: string;
   lineAdded: boolean;
+  lineId?: string; // LINE ID
+  quickTags?: string[]; // 快速標籤
   rfmR?: number;
   rfmF?: number;
   rfmM?: number;

@@ -14,7 +14,7 @@ interface ContactCompleteDialogProps {
   open: boolean;
   minsu: Minsu | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number; lineId?: string }) => void;
+  onSave: (data: { callResult: CallResult; note: string; followUpDays?: number; lineId?: string; quickTags?: string[] }) => void;
 }
 
 // 根據文件 6.4 六主回饋狀態定義後續狀態
@@ -97,6 +97,7 @@ export function ContactCompleteDialog({
   const [followUpDays, setFollowUpDays] = useState<number>(7);
   const [lineId, setLineId] = useState('');
   const [note, setNote] = useState('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
   const handleSelectResult = (result: CallResult) => {
     setSelectedResult(result);
@@ -122,6 +123,7 @@ export function ContactCompleteDialog({
         note,
         followUpDays,
         lineId: selectedResult === 'agreed' ? lineId : undefined,
+        quickTags: selectedResult !== 'rejected' ? Array.from(selectedTags) : undefined,
       });
       // 重置狀態
       setStep('callResult');
@@ -129,6 +131,7 @@ export function ContactCompleteDialog({
       setFollowUpDays(7);
       setLineId('');
       setNote('');
+      setSelectedTags(new Set());
       onOpenChange(false);
     }
   };
@@ -157,6 +160,7 @@ export function ContactCompleteDialog({
       setFollowUpDays(7);
       setLineId('');
       setNote('');
+      setSelectedTags(new Set());
     }
     onOpenChange(newOpen);
   };
@@ -289,7 +293,20 @@ export function ContactCompleteDialog({
                     {['有興趣', '價格敏感', '需要時間', '已加LINE', '待追蹤', '優先客戶'].map((tag) => (
                       <button
                         key={tag}
-                        className="px-3 py-1 text-xs border border-slate-300 rounded-full hover:bg-slate-100 transition-colors"
+                        onClick={() => {
+                          const newTags = new Set(selectedTags);
+                          if (newTags.has(tag)) {
+                            newTags.delete(tag);
+                          } else {
+                            newTags.add(tag);
+                          }
+                          setSelectedTags(newTags);
+                        }}
+                        className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                          selectedTags.has(tag)
+                            ? 'bg-blue-100 border-blue-300 text-blue-700'
+                            : 'border-slate-300 hover:bg-slate-100'
+                        }`}
                       >
                         {tag}
                       </button>
