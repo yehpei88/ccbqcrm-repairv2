@@ -194,7 +194,7 @@ export default function BossCustomerDetail() {
                     onClick={() => toast.success(`撨打 ${selectedMinsu.phone}`)}
                   >
                     <Phone size={13} />
-                    撥打電話
+                    撨打電話
                   </Button>
                 </div>
               </div>

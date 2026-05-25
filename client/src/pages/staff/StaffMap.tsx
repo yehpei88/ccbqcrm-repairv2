@@ -1,37 +1,43 @@
 // CC 代客烤肉 CRM 系統 — 顧客開發人員地圖作業頁面
-// 設計：左側 AI 推薦 + PIN 說明、中間滿版 Leaflet 地圖、右側民宿詳情卡片
-// 基於 GitHub v4 版本，保持區域過濾邏輯
+// 設計：地圖 Pin 操作，過濾器，AI 推薦優先撥打
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import type { PinStatus } from '@/lib/data';
+import L from 'leaflet';
 import Layout, { PageHeader } from '@/components/Layout';
-import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, AREA_ASSIGNMENTS, type Minsu } from '@/lib/data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MOCK_MINSU_DATA, PIN_STATUS_CONFIG, MINSU_COORDINATES, MOCK_STAFF, type Minsu } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, Star, Phone, Filter } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
+import {
+  Phone, MapPin, Star, Filter, ChevronRight,
+  ArrowUpDown, Info, Zap
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { MapView } from '@/components/Map';
 
-type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold' | 'gray';
+type PinStatus = 'red-star' | 'red' | 'green' | 'purple' | 'gold';
 
-const PIN_COLORS: Record<PinStatus, { label: string; color: string; bg: string }> = {
-  'red-star': { label: '🔴⭐ 紅星', color: '#ef4444', bg: '#ef4444' },
-  'red': { label: '🔴 紅標', color: '#f87171', bg: '#f87171' },
-  'green': { label: '🟢 綠標', color: '#22c55e', bg: '#22c55e' },
-  'purple': { label: '🟣 紫標', color: '#a855f7', bg: '#a855f7' },
-  'gold': { label: '🟡 金標', color: '#eab308', bg: '#eab308' },
-  'gray': { label: '⚫ 灰標', color: '#6b7280', bg: '#6b7280' },
+const PIN_COLORS: Record<PinStatus, string> = {
+  'red-star': '#ef4444',
+  'red': '#f87171',
+  'green': '#22c55e',
+  'purple': '#a855f7',
+  'gold': '#eab308',
 };
 
 export default function StaffMap() {
   const [, setLocation] = useLocation();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('score');
+  const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.CircleMarker | L.Marker>>(new Map());
+  const markerLocationsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   // 從 localStorage 獲取登入的顧客開發人員信息
   const staffId = localStorage.getItem('staffId');
@@ -46,173 +52,104 @@ export default function StaffMap() {
     }
   }, [staffId, setLocation]);
 
-  // 過濾該顧客開發人員分配區域的民宿
-  const assignedMinsu = MOCK_MINSU_DATA.filter(m => assignedAreas.includes(m.area));
-
-  // 應用篩選和排序
-  const filteredMinsu = assignedMinsu
-    .filter(m => filterStatus === 'all' || m.pinStatus === filterStatus)
+  const filtered = MOCK_MINSU_DATA
+    .filter(m => {
+      if (!assignedAreas.includes(m.area)) return false;
+      if (filterStatus === 'all') return true;
+      return m.pinStatus === filterStatus;
+    })
     .sort((a, b) => {
       if (sortBy === 'score') return b.aiScore - a.aiScore;
       if (sortBy === 'area') return a.area.localeCompare(b.area);
       return 0;
     });
 
-  // AI 推薦優先撥打（紅星民宿，按 AI 評分排序）
-  const aiRecommended = assignedMinsu
-    .filter(m => m.pinStatus === 'red-star')
-    .sort((a, b) => b.aiScore - a.aiScore)
-    .slice(0, 3);
-
-  // 初始化 Leaflet 地圖
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
-
-    const loadLeaflet = async () => {
-      if (!(window as any).L) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-
-        await new Promise<void>((resolve) => {
-          const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.onload = () => resolve();
-          document.head.appendChild(script);
-        });
-      }
-
-      const L = (window as any).L;
-      const map = L.map(mapRef.current).setView([24.72, 121.75], 11);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-    };
-
-    loadLeaflet();
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
+    // 直接使用民宿資料中的坐標，無需地理編碼
+    for (const minsu of MOCK_MINSU_DATA) {
+      markerLocationsRef.current.set(minsu.id, {
+        lat: minsu.latitude,
+        lng: minsu.longitude,
+      });
+    }
   }, []);
 
-  // 更新地圖標記
-  useEffect(() => {
-    if (!mapInstanceRef.current || !(window as any).L) return;
-    const L = (window as any).L;
+  const [geocodingComplete] = useState(true);
 
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
+  const handleMapReady = (map: L.Map) => {
+    mapRef.current = map;
+  };
 
-    filteredMinsu.forEach((minsu: Minsu) => {
-      const pinColor = PIN_COLORS[minsu.pinStatus as PinStatus]?.bg || '#6b7280';
-
-      const icon = L.divIcon({
-        className: 'custom-pin',
-        html: `<div style="
-          width: 32px; height: 32px; border-radius: 50%;
-          background: ${pinColor}; border: 3px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: bold; color: white;
-        ">${minsu.pinStatus === 'red-star' ? '⭐' : ''}</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      });
-
-      const marker = L.marker([minsu.latitude, minsu.longitude], { icon })
-        .addTo(mapInstanceRef.current)
-        .on('click', () => {
-          setSelectedMinsu(minsu);
-          mapInstanceRef.current.setView([minsu.latitude, minsu.longitude], 15);
-        });
-
-      marker.bindTooltip(`${minsu.name} (${minsu.aiScore}分)`, { 
-        direction: 'top', 
-        offset: [0, -16],
-        permanent: false,
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [filteredMinsu]);
+  // 點擊民宿清單時縮放地圖並定位
+  const handleSelectMinsu = (minsu: Minsu) => {
+    setSelectedMinsu(minsu);
+    
+    // 使用民宿資料中的坐標直接縮放地圖，PIN 點居中
+    if (mapRef.current) {
+      // 直接設置為民宿坐標，讓 PIN 點完全居中在畫面中央
+      mapRef.current.setView([minsu.latitude, minsu.longitude], 16);
+      // 開啟 popup
+      const marker = markersRef.current.get(minsu.id);
+      if (marker && 'openPopup' in marker) {
+        (marker as any).openPopup();
+      }
+    }
+  };
 
   const handleCall = (minsu: Minsu) => {
     setLocation(`/staff/call?id=${minsu.id}`);
   };
 
-  const handleViewDetail = (minsu: Minsu) => {
-    setLocation(`/staff/detail?id=${minsu.id}`);
-  };
+  // AI 推薦：紅星且分數最高的前 3 筆（只限於分配的區域）
+  const aiRecommended = MOCK_MINSU_DATA
+    .filter(m => m.pinStatus === 'red-star' && assignedAreas.includes(m.area))
+    .sort((a, b) => b.aiScore - a.aiScore)
+    .slice(0, 3);
 
   return (
     <Layout role="staff">
       <PageHeader
-        title="地圖作業"
-        subtitle={`${staffName} · 負責區域：${assignedAreas.join('、')}`}
+        title={`地圖作業 - ${staffName}`}
+        subtitle={`負責區域：${assignedAreas.join('、')} — 點擊 Pin 查看詳情`}
       />
 
-      <div className="flex h-[calc(100vh-73px)] bg-slate-50">
-        {/* 左側邊欄：AI 推薦 + PIN 說明 */}
-        <div className="w-80 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
-          {/* AI 推薦優先撥打 */}
-          <div className="p-4 border-b border-slate-200 bg-gradient-to-br from-orange-50 to-red-50">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="w-4 h-4 text-orange-500 fill-orange-500" />
-              <span className="text-sm font-semibold text-orange-700">AI 推薦優先撥打</span>
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* 左側控制面板 */}
+        <div className="w-72 border-r border-border bg-white flex flex-col overflow-hidden">
+          {/* AI 推薦 */}
+          <div className="p-4 border-b border-border bg-gradient-to-br from-orange-50 to-red-50">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Zap size={14} className="text-orange-500" />
+              <span className="text-xs font-semibold text-orange-700">AI 推薦優先撥打</span>
             </div>
             <div className="space-y-2">
-              {aiRecommended.length > 0 ? (
-                aiRecommended.map((minsu, idx) => (
-                  <div
-                    key={minsu.id}
-                    onClick={() => setSelectedMinsu(minsu)}
-                    className="p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow border border-slate-100"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm text-slate-900">{minsu.name}</div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {minsu.area} · AI {minsu.aiScore}/50
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs ml-2">#{idx + 1}</Badge>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full mt-2 h-7 text-xs gap-1"
-                      style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCall(minsu);
-                      }}
-                    >
-                      <Phone className="w-3 h-3" />
-                      撥打電話
-                    </Button>
+              {aiRecommended.map((m, i) => (
+                <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
+                  <div className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
+                    {i + 1}
                   </div>
-                ))
-              ) : (
-                <div className="text-xs text-slate-500 text-center py-4">
-                  暫無紅星民宿
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground truncate">{m.name}</div>
+                    <div className="text-xs text-muted-foreground">評分 {m.aiScore}/50</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-6 px-2 text-xs flex-shrink-0"
+                    style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
+                    onClick={() => handleCall(m)}
+                  >
+                    <Phone size={10} />
+                  </Button>
                 </div>
-              )}
+              ))}
             </div>
           </div>
 
           {/* 篩選器 */}
-          <div className="p-3 border-b border-slate-200 space-y-2">
-            <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-              <Filter className="w-3 h-3" />
-              篩選條件
+          <div className="p-3 border-b border-border space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <Filter size={12} className="inline mr-1" />
+              篩選条件
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="h-8 text-xs">
@@ -227,7 +164,8 @@ export default function StaffMap() {
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="排序方式" />
+                <ArrowUpDown size={12} className="mr-1" />
+                <SelectValue placeholder="排序" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="score">依 AI 評分排序</SelectItem>
@@ -236,19 +174,19 @@ export default function StaffMap() {
             </Select>
           </div>
 
-          {/* PIN 狀態說明 */}
-          <div className="p-3 border-b border-slate-200">
-            <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Pin 狀態說明</div>
+          {/* Pin 圖例 */}
+          <div className="px-4 py-3 border-b border-border">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pin 狀態說明</div>
             <div className="space-y-2">
-              {Object.entries(PIN_COLORS).map(([key, config]) => {
-                const count = assignedMinsu.filter(m => m.pinStatus === key).length;
+              {Object.entries(PIN_STATUS_CONFIG).map(([key, cfg]) => {
+                const count = MOCK_MINSU_DATA.filter(m => m.pinStatus === key).length;
                 return (
-                  <div key={key} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full`} style={{ background: config.bg }} />
-                      <span className="text-slate-700">{config.label}</span>
+                  <div key={key} className="flex items-start justify-between text-xs">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-foreground">{cfg.label}</div>
+                      <div className="text-muted-foreground">{cfg.desc}</div>
                     </div>
-                    <span className="font-semibold text-slate-600">{count}</span>
+                    <div className="font-semibold text-foreground ml-2">{count}</div>
                   </div>
                 );
               })}
@@ -257,147 +195,103 @@ export default function StaffMap() {
 
           {/* 民宿清單 */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-3 space-y-1">
-              <div className="text-xs text-slate-500 mb-2 font-medium">
-                顯示 {filteredMinsu.length} 家民宿
+            <div className="p-3">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">
+                顯示 {filtered.length} 家民宿
               </div>
-              {filteredMinsu.map(minsu => (
-                <div
-                  key={minsu.id}
-                  onClick={() => setSelectedMinsu(minsu)}
-                  className={`p-2.5 rounded-lg cursor-pointer transition-all text-xs group ${
-                    selectedMinsu?.id === minsu.id
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-slate-50 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ background: PIN_COLORS[minsu.pinStatus as PinStatus]?.bg }}
-                    />
+              <div className="space-y-1">
+                {filtered.map(minsu => (
+                  <div
+                    key={minsu.id}
+                    className={cn(
+                      'flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-colors text-sm group',
+                      selectedMinsu?.id === minsu.id ? 'bg-primary/10' : 'hover:bg-muted/50'
+                    )}
+                    onClick={() => handleSelectMinsu(minsu)}
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ background: PIN_COLORS[minsu.pinStatus] }} />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-900 truncate">{minsu.name}</div>
-                      <div className="text-xs text-slate-500">{minsu.area} · {minsu.aiScore}分</div>
+                      <div className="font-medium text-foreground truncate text-xs">{minsu.name}</div>
+                      <div className="text-xs text-muted-foreground">{minsu.area} · {minsu.aiScore}分</div>
                     </div>
                     {minsu.pinStatus === 'red-star' && (
-                      <Star className="w-3 h-3 text-red-400 flex-shrink-0 fill-red-400" />
+                      <Star size={11} className="text-red-400 flex-shrink-0" fill="currentColor" />
                     )}
+                    <ChevronRight size={11} className="text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100" />
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
+
+
         </div>
 
-        {/* 中間：地圖容器 */}
+        {/* 地圖 */}
         <div className="flex-1 relative">
-          <div ref={mapRef} className="w-full h-full" />
-
-          {/* 右側：民宿詳情卡片 */}
-          {selectedMinsu && (
-            <div className="absolute top-4 right-4 w-80 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 z-10">
-              <div className="p-4 border-b border-slate-200">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-base text-slate-900">{selectedMinsu.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1">{selectedMinsu.area}</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedMinsu(null)}
-                    className="text-slate-400 hover:text-slate-600 text-xl leading-none"
-                  >
-                    ×
-                  </button>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {PIN_COLORS[selectedMinsu.pinStatus as PinStatus]?.label} · AI {selectedMinsu.aiScore}/50
-                </Badge>
+          <MapView
+            onMapReady={handleMapReady}
+            initialCenter={{ lat: 24.7021, lng: 121.7377 }}
+            initialZoom={11}
+            markers={geocodingComplete ? MOCK_MINSU_DATA.map(minsu => {
+              const coords = markerLocationsRef.current.get(minsu.id) || { lat: 24.7021, lng: 121.7377 };
+              return {
+                id: minsu.id,
+                lat: coords.lat,
+                lng: coords.lng,
+                title: minsu.name,
+                description: `${minsu.area} · ${minsu.phone}`,
+                pinStatus: minsu.pinStatus,
+              };
+            }) : []}
+            key={geocodingComplete ? 'geocoded' : 'initial'}
+          />
+          {/* 統計覆蓋層 */}
+          <div className="absolute top-20 left-4 bg-white rounded-xl shadow-md p-3 text-xs">
+            <div className="font-semibold text-foreground mb-2">本區統計</div>
+            <div className="space-y-1">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">🔴⭐ 紅星（高潛力）</span>
+                <span className="font-bold text-red-600">{MOCK_MINSU_DATA.filter(m => m.pinStatus === 'red-star').length} 家</span>
               </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">🔴 紅標（一般）</span>
+                <span className="font-bold text-red-400">{MOCK_MINSU_DATA.filter(m => m.pinStatus === 'red').length} 家</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">🟢 已加 LINE</span>
+                <span className="font-bold text-green-600">{MOCK_MINSU_DATA.filter(m => m.pinStatus === 'green').length} 家</span>
+              </div>
+            </div>
+          </div>
 
-              <div className="p-4 space-y-4 text-xs">
-                {/* 基本資訊 */}
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-slate-500">地址</span>
-                    <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.address}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-slate-500">類型</span>
-                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.type || '民宿'}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">合作次數</span>
-                      <p className="font-medium text-slate-900 mt-0.5">{selectedMinsu.cooperationCount}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 聯繫方式 */}
-                <div className="border-t border-slate-200 pt-3">
-                  <div className="text-slate-600 font-semibold mb-2">聯繫方式</div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                      <Phone className="w-4 h-4 text-slate-400" />
-                      <span className="font-medium text-slate-900">{selectedMinsu.phone}</span>
-                    </div>
-                    {selectedMinsu.lineId && (
-                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
-                        <span className="text-lg">💬</span>
-                        <span className="font-medium text-slate-900">{selectedMinsu.lineId}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 合作信息 */}
-                <div className="border-t border-slate-200 pt-3">
-                  <div className="text-slate-600 font-semibold mb-2">合作信息</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 bg-slate-50 rounded">
-                      <span className="text-slate-500">LINE 狀態</span>
-                      <p className="font-medium text-slate-900 mt-0.5">
-                        {selectedMinsu.pinStatus === 'green' ? '✅ 已加' : '❌ 未加'}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-slate-50 rounded">
-                      <span className="text-slate-500">合作狀態</span>
-                      <p className="font-medium text-slate-900 mt-0.5">
-                        {selectedMinsu.pinStatus === 'purple' ? '合作中' : '未合作'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 備注 */}
-                {selectedMinsu.note && (
-                  <div className="border-t border-slate-200 pt-3">
-                    <div className="text-slate-600 font-semibold mb-2">備注</div>
-                    <p className="text-slate-700 bg-slate-50 p-2 rounded">{selectedMinsu.note}</p>
-                  </div>
-                )}
-
-                {/* 快速操作 */}
-                <div className="border-t border-slate-200 pt-3 flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-8 text-xs gap-1"
-                    style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
-                    onClick={() => handleCall(selectedMinsu)}
-                  >
-                    <Phone className="w-3 h-3" />
-                    撥打電話
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-8 text-xs gap-1"
-                    onClick={() => handleViewDetail(selectedMinsu)}
-                  >
-                    查看詳情
-                  </Button>
-                </div>
+          {/* 選中民宿快速操作面板 - 移到右上角 */}
+          {selectedMinsu && (
+            <div className="absolute top-4 right-20 bg-white rounded-xl shadow-md p-3 w-64 z-10">
+              <div className="font-semibold text-sm text-foreground mb-1">{selectedMinsu.name}</div>
+              <div className="text-xs text-muted-foreground mb-2">
+                {selectedMinsu.area} · {selectedMinsu.phone}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 h-7 text-xs gap-1"
+                  style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
+                  onClick={() => handleCall(selectedMinsu)}
+                >
+                  <Phone size={11} />
+                  撥打電話
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-7 text-xs gap-1"
+                  onClick={() => setLocation(`/staff/detail?id=${selectedMinsu.id}`)}
+                >
+                  <Info size={11} />
+                  查看詳情
+                </Button>
               </div>
             </div>
           )}
