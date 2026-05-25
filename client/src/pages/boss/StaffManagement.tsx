@@ -307,16 +307,7 @@ export default function StaffManagement() {
           )}
         </div>
 
-        {/* 使用說明 */}
-        <Card className="p-5 bg-blue-50 border-blue-200">
-          <h4 className="font-semibold text-foreground mb-3">💡 使用說明</h4>
-          <ul className="space-y-2 text-sm text-foreground">
-            <li>✓ <strong>新增工讀生</strong>：點擊「新增工讀生」按鈕，輸入名稱即可建立帳號</li>
-            <li>✓ <strong>停用/啟用</strong>：點擊「停用」或「啟用」按鈕管理帳號狀態</li>
-            <li>✓ <strong>刪除帳號</strong>：點擊「刪除」按鈕永久移除工讀生（無法復原）</li>
-            <li>✓ <strong>區域分配</strong>：新增工讀生後，前往「區域分配設定」指派負責區域</li>
-          </ul>
-        </Card>
+
       </div>
     </Layout>
   );
