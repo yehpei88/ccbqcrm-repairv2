@@ -287,25 +287,31 @@ export default function StaffMap() {
               <div className="text-xs text-slate-500 mb-2 font-medium">
                 顯示 {filteredMinsu.length} 家民宿
               </div>
-              {filteredMinsu.map((minsu) => (
-                <div
-                  key={minsu.id}
-                  onClick={() => setSelectedMinsu(minsu)}
-                  className={`p-2 rounded-lg cursor-pointer transition-all text-xs group ${
-                    selectedMinsu?.id === minsu.id
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-slate-50 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {minsu.pinStatus === 'red-star' && <Star className="w-3 h-3 text-red-500 fill-red-500 flex-shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-900 truncate">{minsu.name}</div>
-                      <div className="text-xs text-slate-500">{minsu.area} · {minsu.aiScore}分</div>
+              {filteredMinsu.map((minsu) => {
+                const pinColor = PIN_COLORS[minsu.pinStatus as PinStatus];
+                return (
+                  <div
+                    key={minsu.id}
+                    onClick={() => setSelectedMinsu(minsu)}
+                    className={`p-2 rounded-lg cursor-pointer transition-all text-xs group ${
+                      selectedMinsu?.id === minsu.id
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'hover:bg-slate-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ background: pinColor.bg }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-slate-900 truncate">{minsu.name}</div>
+                        <div className="text-xs text-slate-500">{minsu.area} · {minsu.aiScore}分</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -427,15 +433,22 @@ export default function StaffMap() {
               </div>
             )}
 
-            {/* 快速操作 */}
+            {/* 快速操作 - 根據開發狀態顯示 */}
             <div className="border-t border-slate-200 pt-4">
-              <Button
-                className="w-full h-10 text-sm gap-2 font-bold bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg"
-                onClick={() => setShowContactDialog(true)}
-              >
-                <Phone className="w-4 h-4" />
-                聯繫完成
-              </Button>
+              {selectedMinsu.callResult ? (
+                <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg text-center">
+                  <p className="font-medium">✅ 已開發</p>
+                  <p className="text-slate-500 mt-1">此民宿已有聯繫記錄</p>
+                </div>
+              ) : (
+                <Button
+                  className="w-full h-10 text-sm gap-2 font-bold bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg"
+                  onClick={() => setShowContactDialog(true)}
+                >
+                  <Phone className="w-4 h-4" />
+                  聯繫完成
+                </Button>
+              )}
             </div>
           </div>
         </div>
