@@ -184,7 +184,7 @@ export default function CallLog() {
         <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="px-4 py-3 border-b border-border bg-muted/20 flex items-center gap-2">
             <Phone size={14} className="text-muted-foreground" />
-            <span className="text-sm font-semibold text-foreground">今日待撥清單</span>
+            <span className="text-sm font-semibold text-foreground">撥號紀錄</span>
             <Badge variant="secondary" className="text-xs">{filtered.length} 家</Badge>
             <span className="text-xs text-muted-foreground ml-1">（AI 評分高者優先）</span>
           </div>
