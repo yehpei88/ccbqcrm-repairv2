@@ -338,14 +338,14 @@ export const WEEKLY_PERFORMANCE: WeeklyPerformance[] = [
 
 // 顧客開發人員模擬資料
 export const MOCK_STAFF: Staff[] = [
-  { id: 'staff-1', name: '小陳', assignedAreas: ['礁溪鄉', '員山鄉', '壯圍鄉'], createdAt: '2026-01-15' },
+  { id: 'staff-1', name: '小陳', assignedAreas: ['礁溪鄉', '員山鄉', '壯圍鄉', '大同鄉'], createdAt: '2026-01-15' },
   { id: 'staff-2', name: '小林', assignedAreas: ['冬山鄉', '羅東鎮', '三星鄉'], createdAt: '2026-02-20' },
   { id: 'staff-3', name: '小王', assignedAreas: ['蘇澳鎮', '五結鄉', '頭城鎮'], createdAt: '2026-03-10' },
 ];
 
 // 區域分配記錄
 export const AREA_ASSIGNMENTS: AreaAssignment[] = [
-  { staffId: 'staff-1', staffName: '小陳', areas: ['礁溪鄉', '員山鄉', '壯圍鄉'], assignedAt: '2026-05-20' },
+  { staffId: 'staff-1', staffName: '小陳', areas: ['礁溪鄉', '員山鄉', '壯圍鄉', '大同鄉'], assignedAt: '2026-05-20' },
   { staffId: 'staff-2', staffName: '小林', areas: ['冬山鄉', '羅東鎮', '三星鄉'], assignedAt: '2026-05-20' },
   { staffId: 'staff-3', staffName: '小王', areas: ['蘇澳鎮', '五結鄉', '頭城鎮'], assignedAt: '2026-05-20' },
 ];
