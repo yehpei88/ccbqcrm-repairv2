@@ -377,6 +377,7 @@ export function ContactCompleteDialog({
                   <div className="space-y-2">
                     {availableTags.map((tagKey) => {
                       const tagConfig = QUICK_TAGS_CONFIG[tagKey];
+                      const hasAction = ['管多間民宿', '約定回訪日期', '其他'].includes(tagKey);
                       return (
                         <div key={tagKey} className="space-y-2">
                           <button
@@ -387,78 +388,50 @@ export function ContactCompleteDialog({
                                 : 'bg-white border-slate-200 hover:border-slate-300'
                             }`}
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className={`font-medium text-sm ${selectedTags.has(tagKey) ? 'text-blue-700' : 'text-slate-700'}`}>
-                                  {tagConfig.label}
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">
-                                  {tagConfig.description}
-                                </div>
-                              </div>
-                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                                selectedTags.has(tagKey)
-                                  ? 'bg-blue-500 border-blue-500'
-                                  : 'border-slate-300'
-                              }`}>
-                                {selectedTags.has(tagKey) && (
-                                  <span className="text-white text-xs">✓</span>
-                                )}
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedTags.has(tagKey)}
+                                onChange={() => {}}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm font-medium">{tagKey}</span>
                             </div>
                           </button>
 
-                          {/* 標籤對應的互動元素 */}
-                          {selectedTags.has(tagKey) && (
-                            <div className="ml-3 p-3 bg-slate-50 rounded border border-slate-200 space-y-2">
+                          {/* 執行動作 - 只有三個標籤會顯示 */}
+                          {hasAction && selectedTags.has(tagKey) && (
+                            <div className="ml-6 p-3 bg-slate-50 rounded border border-slate-200 space-y-2">
+                              <div className="text-xs font-medium text-slate-600 mb-2">
+                                {tagConfig.actionLabel}
+                              </div>
                               {tagConfig.action === 'search' && (
-                                <div>
-                                  <label className="text-xs font-medium text-slate-600 block mb-2">
-                                    {tagConfig.actionLabel}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="輸入民宿名稱..."
-                                    value={tagDetails[tagKey] || ''}
-                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
-                                  />
-                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="輸入民宿名稱..."
+                                  value={tagDetails[tagKey] || ''}
+                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                />
                               )}
 
                               {tagConfig.action === 'date' && (
-                                <div>
-                                  <label className="text-xs font-medium text-slate-600 block mb-2">
-                                    {tagConfig.actionLabel}
-                                  </label>
-                                  <input
-                                    type="date"
-                                    value={tagDetails[tagKey] || ''}
-                                    onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
-                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
-                                  />
-                                </div>
+                                <input
+                                  type="date"
+                                  value={tagDetails[tagKey] || ''}
+                                  onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                                />
                               )}
 
                               {tagConfig.action === 'text' && (
-                                <div>
-                                  <label className="text-xs font-medium text-slate-600 block mb-2">
-                                    {tagConfig.actionLabel}
-                                  </label>
-                                  <textarea
-                                    placeholder="輸入其他備註..."
-                                    value={tagDetails[tagKey] || ''}
+                                <textarea
+                                  placeholder="輸入其他備註..."
+                                  value={tagDetails[tagKey] || ''}
                                     onChange={(e) => handleTagDetailChange(tagKey, e.target.value)}
                                     className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
                                     rows={2}
                                   />
-                                </div>
-                              )}
-
-                              {(tagConfig.action === 'notify' || tagConfig.action === 'mark') && (
-                                <div className="text-xs text-slate-600 p-2 bg-white rounded border border-slate-200">
-                                  ✓ {tagConfig.actionLabel}
-                                </div>
                               )}
                             </div>
                           )}
