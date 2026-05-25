@@ -22,8 +22,8 @@ import StaffMap from "./pages/staff/StaffMap";
 import CallLog from "./pages/staff/CallLog";
 import CustomerDetail from "./pages/staff/CustomerDetail";
 import NotFound from "./pages/NotFound";
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       {/* 登入 */}
