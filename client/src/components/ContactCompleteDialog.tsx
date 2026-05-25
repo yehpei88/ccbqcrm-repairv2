@@ -290,7 +290,7 @@ export function ContactCompleteDialog({
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-2">快速標籤（可複選）</label>
                   <div className="flex flex-wrap gap-2">
-                    {['有興趣', '價格敏感', '需要時間', '已加LINE', '待追蹤', '優先客戶'].map((tag) => (
+                    {['詢問回饋', '需老闆回覆', '態度積極', '態度強烈拒絕', '管多間民宿', '約定回訪日期', '其他'].map((tag) => (
                       <button
                         key={tag}
                         onClick={() => {
