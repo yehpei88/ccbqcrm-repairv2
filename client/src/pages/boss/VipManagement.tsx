@@ -13,11 +13,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
+import { FollowUpDialog } from '@/components/FollowUpDialog';
 import { toast } from 'sonner';
 import {
   Star, Crown, TrendingUp, MessageSquare, Mail, Phone,
   Search, Filter, ChevronDown, ChevronUp, Eye,
-  Award, Clock, DollarSign, BarChart2, Send
+  Award, Clock, DollarSign, BarChart2, Send, Phone as PhoneIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +70,8 @@ export default function VipManagement() {
   const [showMarketing, setShowMarketing] = useState(false);
   const [marketingTarget, setMarketingTarget] = useState<Minsu | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [showFollowUp, setShowFollowUp] = useState(false);
+  const [followUpTarget, setFollowUpTarget] = useState<Minsu | null>(null);
 
   const filtered = VIP_DATA
     .filter(m => {
@@ -298,6 +301,15 @@ export default function VipManagement() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            className="h-7 px-2 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            onClick={() => { setFollowUpTarget(minsu); setShowFollowUp(true); }}
+                          >
+                            <PhoneIcon size={12} className="mr-1" />
+                            主動回訪
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             className="h-7 px-2 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                             onClick={() => { setMarketingTarget(minsu); setShowMarketing(true); }}
                           >
@@ -424,6 +436,16 @@ export default function VipManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* 一鍵回訪 Dialog */}
+      <FollowUpDialog
+        open={showFollowUp}
+        minsu={followUpTarget}
+        onOpenChange={setShowFollowUp}
+        onSend={(template) => {
+          toast.success(`已使用「${template.name}」範本發送回訪訊息`);
+        }}
+      />
 
       {/* 行銷 Dialog */}
       <Dialog open={showMarketing} onOpenChange={setShowMarketing}>

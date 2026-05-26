@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
+import { FollowUpDialog } from '@/components/FollowUpDialog';
 import { toast } from 'sonner';
 import {
   Bell, Flame, MessageSquare, Eye, ThumbsDown,
@@ -39,7 +40,7 @@ function IntentIcon({ label }: { label: string }) {
   return <Eye size={16} className="text-yellow-500" />;
 }
 
-function AlertCard({ minsu, onView }: { minsu: Minsu; onView: (m: Minsu) => void }) {
+function AlertCard({ minsu, onView, onFollowUp }: { minsu: Minsu; onView: (m: Minsu) => void; onFollowUp: (m: Minsu) => void }) {
   const intentCfg = INTENT_CONFIG[minsu.intentLabel!];
   const isHot = minsu.intentLabel === 'hot';
   const isSeen = minsu.intentLabel === 'seen';
@@ -95,6 +96,17 @@ function AlertCard({ minsu, onView }: { minsu: Minsu; onView: (m: Minsu) => void
             <ArrowRight size={11} />
             查看對話
           </Button>
+          {(isSeen || minsu.intentLabel === 'inquiring') && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-3 text-xs gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+              onClick={() => onFollowUp(minsu)}
+            >
+              <Phone size={11} />
+              一鍵回訪
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -114,6 +126,8 @@ export default function AlertsPage() {
   const [filterIntent, setFilterIntent] = useState<string>('all');
   const [selectedMinsu, setSelectedMinsu] = useState<Minsu | null>(null);
   const [showConversation, setShowConversation] = useState(false);
+  const [showFollowUp, setShowFollowUp] = useState(false);
+  const [followUpTarget, setFollowUpTarget] = useState<Minsu | null>(null);
 
   const filtered = filterIntent === 'all'
     ? INTENT_DATA
@@ -210,7 +224,7 @@ export default function AlertsPage() {
         {/* 警示卡片列表 */}
         <div className="space-y-3">
           {sorted.map(minsu => (
-            <AlertCard key={minsu.id} minsu={minsu} onView={handleView} />
+            <AlertCard key={minsu.id} minsu={minsu} onView={handleView} onFollowUp={(m) => { setFollowUpTarget(m); setShowFollowUp(true); }} />
           ))}
           {sorted.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
@@ -305,6 +319,16 @@ export default function AlertsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 一鍵回訪 Dialog */}
+      <FollowUpDialog
+        open={showFollowUp}
+        minsu={followUpTarget}
+        onOpenChange={setShowFollowUp}
+        onSend={(template) => {
+          toast.success(`已使用「${template.name}」範本發送回訪訊息`);
+        }}
+      />
     </Layout>
   );
 }
