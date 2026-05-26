@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { FollowUpDialog } from '@/components/FollowUpDialog';
+import { FollowUpSettingsDialog } from '@/components/FollowUpSettingsDialog';
 import { toast } from 'sonner';
 import {
   Star, Crown, TrendingUp, MessageSquare, Mail, Phone,
@@ -72,6 +73,8 @@ export default function VipManagement() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpTarget, setFollowUpTarget] = useState<Minsu | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [followUpDays, setFollowUpDays] = useState(60);
 
   const filtered = VIP_DATA
     .filter(m => {
@@ -97,15 +100,26 @@ export default function VipManagement() {
         title="VIP 管理"
         subtitle="合作客戶 RFM 分析與差異化行銷管理"
         actions={
-          <Button
-            size="sm"
-            className="gap-2"
-            style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
-            onClick={() => toast.info('批次行銷功能開發中')}
-          >
-            <Send size={14} />
-            批次發送優惠
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowSettings(true)}
+            >
+              <Award size={14} />
+              回訪設定
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              style={{ background: 'oklch(0.65 0.22 25)', color: 'white' }}
+              onClick={() => toast.info('批次行銷功能開發中')}
+            >
+              <Send size={14} />
+              批次發送優惠
+            </Button>
+          </div>
         }
       />
 
@@ -265,14 +279,21 @@ export default function VipManagement() {
                         <RfmBadge r={minsu.rfmR ?? 0} f={minsu.rfmF ?? 0} m={minsu.rfmM ?? 0} />
                       </td>
                       <td className="text-right text-sm font-mono">
-                        <span className={cn(
-                          'px-1.5 py-0.5 rounded text-xs',
-                          (minsu.rfmR ?? 0) <= 30 ? 'bg-green-100 text-green-700' :
-                            (minsu.rfmR ?? 0) <= 60 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                        )}>
-                          {minsu.rfmR ?? '-'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={cn(
+                            'px-1.5 py-0.5 rounded text-xs',
+                            (minsu.rfmR ?? 0) <= 30 ? 'bg-green-100 text-green-700' :
+                              (minsu.rfmR ?? 0) <= 60 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                          )}>
+                            {minsu.rfmR ?? '-'} 天
+                          </span>
+                          {(minsu.rfmR ?? 0) >= followUpDays && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full animate-pulse font-medium">
+                              ⚠️ 建議回訪
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="text-right text-sm font-semibold text-foreground">{minsu.rfmF ?? 0}</td>
                       <td className="text-right text-sm font-semibold text-foreground">
@@ -496,6 +517,17 @@ export default function VipManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 回訪設定 Dialog */}
+      <FollowUpSettingsDialog
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        currentDays={followUpDays}
+        onSave={(days) => {
+          setFollowUpDays(days);
+          toast.success(`已更新回訪間隔為 ${days} 天`);
+        }}
+      />
     </Layout>
   );
 }
